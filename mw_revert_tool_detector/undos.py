@@ -79,7 +79,7 @@ def _load_undo_from_api(wiki_db):
     api = mwapi.Session(base_url.format(wiki),user_agent="mw_revert_tool_detector, project by groceryheist (Nathan TeBlunthuis) <nathante@uw.edu>))")
 
     try:
-        res = api.get(action="query",list="allpages",apprefix="undo-success",aplimit="max",apn amespace=8)
+        res = api.get(action="query", list="allpages", apprefix="undo-success", aplimit="max", apnamespace=8)
     except mwapi.errors.ConnectionError as e:
         print(e)
         return

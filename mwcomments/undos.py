@@ -12,9 +12,9 @@ from pkg_resources import resource_string, resource_exists
 
 def load_wiki_patterns(refresh=False):
 
-    if resource_exists(__name__,'resources/wiki_patterns.json'):
+    if resource_exists(__name__, 'resources/wiki_patterns.json'):
         wiki_patterns_str = resource_string(__name__, 'resources/wiki_patterns.json')
-        return json.loads(wiki_patterns_str)
+        return json.loads(wiki_patterns_str.decode())
 
     properties = ['undo-summary','rollback-success']
     from_mediawiki = load_from_mediawiki(properties)

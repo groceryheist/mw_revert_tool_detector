@@ -1,4 +1,4 @@
- # the first priority is on *.wikipedia.org/wiki/Mediawiki:Undo-summary
+# the first priority is on *.wikipedia.org/wiki/Mediawiki:Undo-summary
 # then comes ./mediawiki-extensions-WikimediaMessages/
 # finally comes ./mediawiki/languages/il8n/
 from itertools import chain
@@ -58,17 +58,43 @@ def load_wiki_patterns():
 
     patterns = {}
 
+    not_found = []
     for wiki_db, site_info in wikimedia_sites.items():
         props1 = from_api.get(wiki_db,{})
         lang = site_info['lang']
         props2 = from_extensions.get(lang,{})
         props3 = from_mediawiki.get(lang,{})
-
         patterns[wiki_db] = {**props3, **{**props2, **props1}}
+        if patterns[wiki_db] == {}:
+            not_found.append(wiki_db)
+
+    # for the ones still missing get siteinfo from the api
+    for wiki_db in not_found:
+        site_info = wikimedia_sites[wiki_db]
+        fall_back_langs = get_fallback_langs(site_info)
+        props = {}
+        for lang in fall_back_langs:
+            props1 = from_extensions.get(lang,{})
+            props2 = from_mediawiki.get(lang,{})
+            props = {**props2, **{**props1, **props}}
+
+        patterns[wiki_db] = props
 
     json.dump(patterns, open("resources/wiki_patterns.json",'w'))
     return patterns
                     
+def get_fallback_langs(site_info):
+    import mwapi
+    api = mwapi.Session(site_info['url'], user_agent)
+    res = api.get(action='query', meta='siteinfo')
+    try:
+        fall_backlangs = res['query']['general']['fallback']
+    except KeyError as e:
+        return
+
+    for lang in fall_backlangs:
+        yield lang['code']
+
 def to_regex(summary):
     dollar_replace = re.compile("\\\\\\$\\d")
     gender_replace = re.compile("\\\\{\\\\{GENDER.*\\\\}\\\\}")

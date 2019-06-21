@@ -11,30 +11,14 @@ import glob
 import json
 from bs4 import BeautifulSoup as bs
 
-wiki_patterns = load_wiki_patterns(refresh=False)
-
-huggle_pattern = r".*\(HG\)"
-
-def match(comment, wiki): 
-    patterns = patterns[wiki]
-    for k, pattern in patterns.items():
-        if pattern.match(comment):
-            return k
-    if huggle_pattern.match(comment):
-        return "huggle"
-
-    return None
-
-def load_wiki_patterns(refresh=False, wikis=None):
-
-    if os.path.exists("resources/patterns.pickle"):
+def load_wiki_patterns(refresh=False):
+    if os.path.exists("resources/wiki_patterns.json") and refresh is False:
         return json.load(open("resources/wiki_patterns.json",'r'))
 
     properties = ['undo-summary','rollback-success']
     from_mediawiki = load_from_mediawiki(properties)
-    if wikis is None:
-        wikis = set(from_mediawiki.keys())
-
+    wikis = set(from_mediawiki.keys())
+    
     from_extensions = load_from_extensions(properties)
     from_api = load_from_api(wikis)
 
@@ -56,12 +40,18 @@ def load_wiki_patterns(refresh=False, wikis=None):
             patterns[wiki] = {** props, **patterns[wiki]}
 
     json.dump(patterns, open("resources/wiki_patterns.json",'w'))
+    return patterns
                     
 def to_regex(summary):
     dollar_replace = re.compile("\\\\\\$\\d")
     gender_replace = re.compile("\\\\{\\\\{GENDER.*\\\\}\\\\}")
     special_replace = re.compile("Special\\\\\\:")
     usertalk_replace = re.compile("User\\\\ talk\\\\\\:")
+    
+    # remove final periods
+    if summary[-1] == '.':
+        summary = summary[0:-1]
+
     summary = re.escape(summary)
 
     re1 = dollar_replace.sub('(.*)',summary)
@@ -85,11 +75,11 @@ def load_from_api(wikis):
 
 def _load_rollback_from_api(wikis):
     it = _load_prefix_from_api(wikis, "rollback-success")
-    return ((wiki, "rollback-success", pattern) for wiki, pattern in it)
+    return ((wiki, "rollback", pattern) for wiki, pattern in it)
 
 def _load_undo_from_api(wikis):
     it = _load_prefix_from_api(wikis, "undo-summary")
-    return ((wiki, "undo-summary", pattern) for wiki, pattern in it)
+    return ((wiki, "undo", pattern) for wiki, pattern in it)
 
 def _load_prefix_from_api(wikis, page_prefix):
     return chain(* map(partial(_load_from_api,page_prefix = page_prefix), wikis))
@@ -161,6 +151,25 @@ def load_json(path, properties):
             if prop in translations:
                 summary_regex = to_regex(translations[prop])
                 if not is_variant:
-                    yield ("{0}wiki".format(lang),prop,summary_regex)
+                    yield ("{0}wiki".format(lang),prop.split('-')[0],summary_regex)
                 else: 
-                    yield ("{0}wiki".format(pre_lang),prop,summary_regex)
+                    yield ("{0}wiki".format(pre_lang),prop.split('-')[0],summary_regex)
+
+wiki_patterns = load_wiki_patterns(refresh=False)
+
+def match(comment, wiki): 
+    props = wiki_patterns[wiki]
+    for k, properties in props.items():
+        for prop in properties: 
+            if re.match(prop,comment):
+                yield k
+
+    if re.match(huggle_pattern,comment):
+        yield "huggle"
+
+    if re.match(twinkle_pattern,comment):
+        yield "twinkle"
+
+
+huggle_pattern = r".*\(HG\).*"
+twinkle_pattern = r".*\(TW\).*"

@@ -1,5 +1,5 @@
 import unittest
-from . import *
+from ..undos import match 
 
 class TestUndos(unittest.TestCase):
     def test_huggle(self):
@@ -8,12 +8,12 @@ class TestUndos(unittest.TestCase):
 
     def test_twinkle(self):
         message = "Reverted to revision 902745694 by Bmclaughlin9 (talk): Unsourced likely vandalism (TW)"
-        self.assertSetEqual(set(match(message,'enwiki')),{"twinkle","rollback"})
+        self.assertSetEqual(set(match(message,'enwiki')),{"twinkle"})
 
     def test_undo(self):
         message = "Undid revision 902317645 by 148.255.110.193 (talk) Unsourced addition and ethnicities do not go in the lead"
         self.assertSetEqual(set(match(message,'enwiki')),{"undo"})
 
     def test_rollback(self):
-        message = "Reverted edits by Justthefacts98 (talk) to last revision by Someguy1221"
+        message = "Reverted edits by Justthefacts98 (talk) to last revision by Someguy1221 (HG)"
         self.assertSetEqual(set(match(message,'enwiki')),{'huggle','rollback'})

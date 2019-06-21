@@ -23,6 +23,7 @@ def load_sitematrix():
     api = mwapi.Session("https://en.wikipedia.org", user_agent = user_agent)
     site_matrix = api.get(action='sitematrix')['sitematrix']
 
+
     def gen_sitematrix(site_matrix):
         for i, data in site_matrix.items():
             if type(data) is not dict:
@@ -33,7 +34,9 @@ def load_sitematrix():
             for site_data in data['site']:
                 yield (site_data['dbname'],{'url':site_data['url'], 'lang':lang})
 
+    # add wikidata manually
     wikimedia_sites = dict(gen_sitematrix(site_matrix))
+    wikimedia_sites['wikidatawiki'] = {'url':"https://wikidata.org", 'lang':"en"}
     
     if os.path.exists("resources"):
         if not os.path.exists("resources/wikimedia_sites.json"):

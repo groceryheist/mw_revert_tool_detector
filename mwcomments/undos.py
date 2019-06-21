@@ -8,12 +8,13 @@ import subprocess
 import re
 import glob
 import json
-from pkg_resources import resource_filename
+from pkg_resources import resource_string, resource_exists
 
 def load_wiki_patterns(refresh=False):
-    wiki_patterns_file = resource_filename(__name__,'resources/wiki_patterns.json')
-    if os.path.exists(wiki_patterns_file) and refresh is False:
-        return json.load(open(wiki_patterns_file,'r'))
+
+    if resource_exists(__name__,'resources/wiki_patterns.json'):
+        wiki_patterns_str = resource_string(__name__, 'resources/wiki_patterns.json')
+        return json.loads(wiki_patterns_str)
 
     properties = ['undo-summary','rollback-success']
     from_mediawiki = load_from_mediawiki(properties)

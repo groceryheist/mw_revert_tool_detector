@@ -169,7 +169,9 @@ def _load_from_api(wikimedia_site, page_prefix):
             res2 = api.get(action="parse",page=page['title'],prop="text")
             html_parsed = bs(res2['parse']['text']['*'], features="lxml")
             print("found api settings for {0}".format(wiki_db))
-            yield (wiki_db, to_regex(html_parsed.getText().strip()))
+            html_text = html_parsed.getText()
+            msg = html_text.split('\n')[0]
+            yield (wiki_db, to_regex(msg.strip()))
 
 
 def agg_patterns(d, t):

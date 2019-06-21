@@ -23,7 +23,6 @@ def load_sitematrix():
     api = mwapi.Session("https://en.wikipedia.org", user_agent = user_agent)
     site_matrix = api.get(action='sitematrix')['sitematrix']
 
-
     def gen_sitematrix(site_matrix):
         for i, data in site_matrix.items():
             if type(data) is not dict:
@@ -170,7 +169,8 @@ def _load_from_api(wikimedia_site, page_prefix):
             html_parsed = bs(res2['parse']['text']['*'], features="lxml")
             print("found api settings for {0}".format(wiki_db))
             html_text = html_parsed.getText()
-            msg = html_text.split('\n')[0]
+
+            msg = [line for line in html_text.split('\n') if len(line) > 0][0]
             yield (wiki_db, to_regex(msg.strip()))
 
 

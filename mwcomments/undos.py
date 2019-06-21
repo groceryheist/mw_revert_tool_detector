@@ -8,9 +8,40 @@ import subprocess
 import re
 import glob
 import json
+from concurrent.futures import ThreadPoolExecutor
 from pkg_resources import resource_string, resource_exists
+user_agent = "mw_revert_tool_detector, project by groceryheist (Nathan TeBlunthuis) <nathante@uw.edu>))"
 
-def load_wiki_patterns(refresh=False):
+# we want, dbname -> (url, lang)
+def load_sitematrix():
+
+    if resource_exists(__name__, 'resources/wikimedia_sites.json'):
+        wikimedia_sites = resource_string(__name__, 'resources/wikimedia_sites.json')
+        return json.loads(wikimedia_sites.decode())
+
+    import mwapi
+    api = mwapi.Session("https://en.wikipedia.org", user_agent = user_agent)
+    site_matrix = api.get(action='sitematrix')['sitematrix']
+
+    def gen_sitematrix(site_matrix):
+        for i, data in site_matrix.items():
+            if type(data) is not dict:
+                continue
+
+            lang = data['code']
+
+            for site_data in data['site']:
+                yield (site_data['dbname'],{'url':site_data['url'], 'lang':lang})
+
+    wikimedia_sites = dict(gen_sitematrix(site_matrix))
+    
+    if os.path.exists("resources"):
+        if not os.path.exists("resources/wikimedia_sites.json"):
+            json.dump(wikimedia_sites, open("resources/wikimedia_sites.json",'w'))
+
+    return wikimedia_sites
+
+def load_wiki_patterns():
 
     if resource_exists(__name__, 'resources/wiki_patterns.json'):
         wiki_patterns_str = resource_string(__name__, 'resources/wiki_patterns.json')
@@ -18,27 +49,22 @@ def load_wiki_patterns(refresh=False):
 
     properties = ['undo-summary','rollback-success']
     from_mediawiki = load_from_mediawiki(properties)
-    wikis = set(from_mediawiki.keys())
-    
+
     from_extensions = load_from_extensions(properties)
-    from_api = load_from_api(wikis)
+
+    wikimedia_sites = load_sitematrix()
+
+    from_api = load_from_api(wikimedia_sites)
 
     patterns = {}
 
-    for wiki, props in from_api.items():
-        patterns[wiki] = props
+    for wiki_db, site_info in wikimedia_sites.items():
+        props1 = from_api.get(wiki_db,{})
+        lang = site_info['lang']
+        props2 = from_extensions.get(lang,{})
+        props3 = from_mediawiki.get(lang,{})
 
-    for wiki, props in from_extensions.items():
-        if wiki not in patterns:
-            patterns[wiki] = props
-        else:
-            patterns[wiki] = {** props, **patterns[wiki]}
-
-    for wiki, props in from_mediawiki.items():
-        if wiki not in patterns:
-            patterns[wiki] = props
-        else:
-            patterns[wiki] = {** props, **patterns[wiki]}
+        patterns[wiki_db] = {**props3, **{**props2, **props1}}
 
     json.dump(patterns, open("resources/wiki_patterns.json",'w'))
     return patterns
@@ -70,34 +96,35 @@ def clone_if_not_available(repo_url):
         subprocess.call(["git","clone",repo_url])
         os.chdir("..")
 
-def load_from_api(wikis):
-    it = chain(_load_rollback_from_api(wikis), _load_undo_from_api(wikis))
+def load_from_api(wikimedia_sites):
+    it = chain(_load_rollback_from_api(wikimedia_sites), _load_undo_from_api(wikimedia_sites))
+
     return reduce(agg_patterns, it, {})
 
-def _load_rollback_from_api(wikis):
-    it = _load_prefix_from_api(wikis, "rollback-success")
-    return ((wiki, "rollback", pattern) for wiki, pattern in it)
+def _load_rollback_from_api(wikimedia_sites):
+    it = _load_prefix_from_api(wikimedia_sites, "rollback-success")
+    return ((wiki_db, "rollback", pattern) for wiki_db, pattern in it)
 
-def _load_undo_from_api(wikis):
-    it = _load_prefix_from_api(wikis, "undo-summary")
-    return ((wiki, "undo", pattern) for wiki, pattern in it)
+def _load_undo_from_api(wikimedia_sites):
+    it = _load_prefix_from_api(wikimedia_sites, "undo-summary")
+    return ((wiki_db, "undo", pattern) for wiki_db, pattern in it)
 
-def _load_prefix_from_api(wikis, page_prefix):
-    return chain(* map(partial(_load_from_api,page_prefix = page_prefix), wikis))
+def _load_prefix_from_api(wikimedia_sites, page_prefix):
+    with ThreadPoolExecutor() as executor:
+        return chain(* executor.map(partial(_load_from_api,page_prefix = page_prefix), wikimedia_sites.items()))
 
-def _load_from_api(wiki_db, page_prefix):
+def _load_from_api(wikimedia_site, page_prefix):
     from bs4 import BeautifulSoup as bs
     import mwapi
-
-    base_url = "https://{0}.wikipedia.org"
-    wiki = re.findall(r'(.*)wiki', wiki_db)[0]
     
+    wiki_db, site_info = wikimedia_site
+
     # first we search for the page we're looking for
-    api = mwapi.Session(base_url.format(wiki),user_agent="mw_revert_tool_detector, project by groceryheist (Nathan TeBlunthuis) <nathante@uw.edu>))")
+    api = mwapi.Session(site_info['url'], user_agent=user_agent)
 
     try:
         res = api.get(action="query", list="allpages", apprefix=page_prefix, aplimit="max", apnamespace=8)
-#        res = api.get(action="query", list="prefixsearch", pssearch="undo", pslimit="max", psnamespace="8")
+
     except mwapi.errors.ConnectionError as e:
         print(e)
         return
@@ -111,7 +138,8 @@ def _load_from_api(wiki_db, page_prefix):
         for page in allpages:
             # then we get the text of that page
             res2 = api.get(action="parse",page=page['title'],prop="text")
-            html_parsed = bs(res2['parse']['text']['*'])
+            html_parsed = bs(res2['parse']['text']['*'], features="lxml")
+            print("found api settings for {0}".format(wiki_db))
             yield (wiki_db, to_regex(html_parsed.getText().strip()))
 
 
@@ -145,7 +173,6 @@ def load_json(path, properties):
     languagesWithVariants = ['en','crh','gan','iu','kk','ku','shi','sr','tg','uz','zh']
     glob_str = "{0}/*.json".format(path)
     languages_files = glob.glob(glob_str)
-    variants = {}
     for f in languages_files:
         pre_lang = variant_regex.match(f).groups()[0]
         is_variant = pre_lang in languagesWithVariants
@@ -155,13 +182,14 @@ def load_json(path, properties):
             if prop in translations:
                 summary_regex = to_regex(translations[prop])
                 if not is_variant:
-                    yield ("{0}wiki".format(lang),prop.split('-')[0],summary_regex)
+                    yield (lang, prop.split('-')[0],summary_regex)
                 else: 
-                    yield ("{0}wiki".format(pre_lang),prop.split('-')[0],summary_regex)
+                    yield (pre_lang, prop.split('-')[0],summary_regex)
 
-wiki_patterns = load_wiki_patterns(refresh=True)
+wiki_patterns = load_wiki_patterns()
 
 def match(comment, wiki): 
+
     props = wiki_patterns[wiki]
     for k, properties in props.items():
         for prop in properties: 

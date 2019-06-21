@@ -3,13 +3,11 @@
 # finally comes ./mediawiki/languages/il8n/
 from itertools import chain
 from functools import reduce, partial
-import mwapi
 import os
 import subprocess
 import re
 import glob
 import json
-from bs4 import BeautifulSoup as bs
 from pkg_resources import resource_filename
 
 def load_wiki_patterns(refresh=False):
@@ -87,6 +85,9 @@ def _load_prefix_from_api(wikis, page_prefix):
     return chain(* map(partial(_load_from_api,page_prefix = page_prefix), wikis))
 
 def _load_from_api(wiki_db, page_prefix):
+    from bs4 import BeautifulSoup as bs
+    import mwapi
+
     base_url = "https://{0}.wikipedia.org"
     wiki = re.findall(r'(.*)wiki', wiki_db)[0]
     
@@ -157,19 +158,19 @@ def load_json(path, properties):
                 else: 
                     yield ("{0}wiki".format(pre_lang),prop.split('-')[0],summary_regex)
 
-wiki_patterns = load_wiki_patterns(refresh=False)
+wiki_patterns = load_wiki_patterns(refresh=True)
 
 def match(comment, wiki): 
     props = wiki_patterns[wiki]
     for k, properties in props.items():
         for prop in properties: 
-            if re.match(prop,comment):
+            if re.match(prop, comment):
                 yield k
 
-    if re.match(huggle_pattern,comment):
+    if re.match(huggle_pattern, comment):
         yield "huggle"
 
-    if re.match(twinkle_pattern,comment):
+    if re.match(twinkle_pattern, comment):
         yield "twinkle"
 
 

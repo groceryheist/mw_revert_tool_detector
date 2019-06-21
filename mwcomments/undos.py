@@ -35,7 +35,6 @@ def load_sitematrix():
 
     # add wikidata manually
     wikimedia_sites = dict(gen_sitematrix(site_matrix))
-    wikimedia_sites['wikidatawiki'] = {'url':"https://wikidata.org", 'lang':"en"}
     
     if os.path.exists("resources"):
         if not os.path.exists("resources/wikimedia_sites.json"):
@@ -93,6 +92,13 @@ def get_fallback_langs(site_info):
         fall_backlangs = res['query']['general']['fallback']
     except KeyError as e:
         return
+
+    try:
+        lang = res['query']['general']['lang']
+        yield lang
+
+    except KeyError as e:
+        pass
 
     for lang in fall_backlangs:
         yield lang['code']

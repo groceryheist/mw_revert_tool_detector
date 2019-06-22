@@ -171,6 +171,10 @@ def _load_from_api(wikimedia_site, page_prefix):
         print(e)
         return
 
+    except mwapi.errors.APIError as e:
+        print(e)
+        return
+
     allpages = res['query']['allpages']
     if len(allpages) > 0:
         for page in allpages:

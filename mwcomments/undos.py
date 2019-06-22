@@ -91,7 +91,13 @@ def load_wiki_patterns():
 def get_fallback_langs(site_info):
     import mwapi
     api = mwapi.Session(site_info['url'], user_agent)
-    res = api.get(action='query', meta='siteinfo')
+    try:
+        res = api.get(action='query', meta='siteinfo')
+
+    except APIError as e:
+        print(e)
+        return
+
     try:
         fall_backlangs = res['query']['general']['fallback']
     except KeyError as e:

@@ -98,6 +98,10 @@ def get_fallback_langs(site_info):
         print(e)
         return
 
+    except ValueError as e:
+        print(e)
+        return
+
     try:
         fall_backlangs = res['query']['general']['fallback']
     except KeyError as e:

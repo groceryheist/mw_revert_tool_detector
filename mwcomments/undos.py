@@ -122,6 +122,7 @@ def to_regex(summary):
     gender_replace = re.compile("\\\\{\\\\{GENDER.*\\\\}\\\\}")
     special_replace = re.compile("Special\\\\\\:")
     usertalk_replace = re.compile("User\\\\ talk\\\\\\:")
+    talk_replace = re.compile(r'\\\(talk\\\)')
     
     # remove final periods
     if summary[-1] == '.':
@@ -133,7 +134,8 @@ def to_regex(summary):
     re2 = gender_replace.sub("(.*)",re1)
     re3 = special_replace.sub('(.*)',re2)
     re4 = usertalk_replace.sub('(.*)',re3)
-    return r"(?:.*{0}.*)".format(re4)
+    re5 = talk_replace.sub('(.*)',re4)
+    return r"(?:.*{0}.*)".format(re5)
 
 def clone_if_not_available(repo_url):
     repo_name = repo_url.split('/')[-2]

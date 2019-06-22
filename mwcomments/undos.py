@@ -94,7 +94,7 @@ def get_fallback_langs(site_info):
     try:
         res = api.get(action='query', meta='siteinfo')
 
-    except APIError as e:
+    except wmapi.errors.APIError as e:
         print(e)
         return
 

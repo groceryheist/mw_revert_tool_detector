@@ -33,6 +33,10 @@ def load_sitematrix():
             for site_data in data['site']:
                 yield (site_data['dbname'],{'url':site_data['url'], 'lang':lang})
 
+        for site_data in site_matrix['specials']:
+            lang = site_data['lang']
+            yield (site_data['dbname'],{'url':site_data['url'], 'lang':lang})
+
     # add wikidata manually
     wikimedia_sites = dict(gen_sitematrix(site_matrix))
     

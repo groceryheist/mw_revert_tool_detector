@@ -245,7 +245,10 @@ wiki_patterns = load_wiki_patterns()
 
 def match(comment, wiki): 
 
-    props = wiki_patterns[wiki]
+    try:
+        props = wiki_patterns[wiki]
+    except KeyError as e:
+        raise KeyError(str(e)) from e
     for k, properties in props.items():
         for prop in properties: 
             if re.match(prop, comment):

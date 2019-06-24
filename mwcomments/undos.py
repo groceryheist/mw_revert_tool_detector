@@ -118,24 +118,20 @@ def get_fallback_langs(site_info):
         yield lang['code']
 
 def to_regex(summary):
-    dollar_replace = re.compile("\\\\\\$\\d")
-    gender_replace = re.compile("\\\\{\\\\{GENDER.*\\\\}\\\\}")
-    special_replace = re.compile("Special\\\\\\:")
-    usertalk_replace = re.compile("User\\\\ talk\\\\\\:")
-    talk_replace = re.compile(r'\\\(talk\\\)')
+    dollar_replace = re.compile(re.escape("$") + "\d")
+    gender_replace = re.compile(re.escape("{{") + "GENDER.*" + re.escape("}}"))
+    wikilink_replace = re.compile(re.escape("[[") + ".*" + re.escape("]]"))
     
     # remove final periods
     if summary[-1] == '.':
         summary = summary[0:-1]
 
-    summary = re.escape(summary)
+    summary = dollar_replace.sub('(.*)',summary)
+    summary = gender_replace.sub("(.*)",summary)
+    summary = wikilink_replace.sum("(.*)",summary)
 
-    re1 = dollar_replace.sub('(.*)',summary)
-    re2 = gender_replace.sub("(.*)",re1)
-    re3 = special_replace.sub('(.*)',re2)
-    re4 = usertalk_replace.sub('(.*)',re3)
-    re5 = talk_replace.sub('(.*)',re4)
-    return r"(?:.*{0}.*)".format(re5)
+    summary = re.escape(re2)
+    return r"(?:.*{0}.*)".format(summary)
 
 def clone_if_not_available(repo_url):
     repo_name = repo_url.split('/')[-2]
@@ -188,16 +184,15 @@ def _load_from_api(wikimedia_site, page_prefix):
         return
 
     allpages = res['query']['allpages']
-    if len(allpages) > 0:
-        for page in allpages:
-            # then we get the text of that page
-            res2 = api.get(action="parse",page=page['title'],prop="text")
-            html_parsed = bs(res2['parse']['text']['*'], features="lxml")
-            print("found api settings for {0}".format(wiki_db))
-            html_text = html_parsed.getText()
 
-            msg = [line for line in html_text.split('\n') if len(line) > 0][0]
-            yield (wiki_db, to_regex(msg.strip()))
+    for page in allpages:
+        # then we get the text of that page
+        res2 = api.get(action="query",titles=[page['title']],prop="revisions",rvprop='content')
+        res_page = list(res2['query']['pages'].items())[0]
+        wiki_text = res_page[1]['revisions'][0]['*']
+        print("found api settings for {0}".format(wiki_db))
+        msg = [line for line in wiki_text.split('\n') if len(line) > 0][0]
+        yield (wiki_db, to_regex(msg.strip()))
 
 
 def agg_patterns(d, t):

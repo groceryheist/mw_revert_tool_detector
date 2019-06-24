@@ -52,7 +52,7 @@ def load_wiki_patterns():
         wiki_patterns_str = resource_string(__name__, 'resources/wiki_patterns.json')
         return json.loads(wiki_patterns_str.decode())
 
-    properties = ['undo-summary','rollback-success']
+    properties = ['undo-summary','revertpage']
     from_mediawiki = load_from_mediawiki(properties)
 
     from_extensions = load_from_extensions(properties)
@@ -117,11 +117,10 @@ def get_fallback_langs(site_info):
     for lang in fall_backlangs:
         yield lang['code']
 
-def to_regex(summary):
+def to_regex(summary, ):
     dollar_replace = re.compile(re.escape("\$") + "\d")
     gender_replace = re.compile(re.escape("\{\{") + "GENDER.*" + re.escape("\}\}"))
-    space_or_paren = '['+re.escape("\ ")+re.escape('\(') +re.escape('\)')+']'
-    
+
     
     # remove final periods
     if summary[-1] == '.':
@@ -147,7 +146,7 @@ def load_from_api(wikimedia_sites):
     return reduce(agg_patterns, it, {})
 
 def _load_rollback_from_api(wikimedia_sites):
-    it = _load_prefix_from_api(wikimedia_sites, "rollback-success")
+    it = _load_prefix_from_api(wikimedia_sites, "revertpage")
     return ((wiki_db, "rollback", pattern) for wiki_db, pattern in it)
 
 def _load_undo_from_api(wikimedia_sites):

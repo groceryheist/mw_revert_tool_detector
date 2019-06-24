@@ -128,9 +128,9 @@ def to_regex(summary):
 
     summary = dollar_replace.sub('(.*)',summary)
     summary = gender_replace.sub("(.*)",summary)
-    summary = wikilink_replace.sum("(.*)",summary)
+    summary = wikilink_replace.sub("(.*)",summary)
 
-    summary = re.escape(re2)
+    summary = re.escape(summary)
     return r"(?:.*{0}.*)".format(summary)
 
 def clone_if_not_available(repo_url):

@@ -52,7 +52,7 @@ def load_wiki_patterns():
         wiki_patterns_str = resource_string(__name__, 'resources/wiki_patterns.json')
         return json.loads(wiki_patterns_str.decode())
 
-    properties = ['undo-summary','revertpage']
+    properties = [('undo-summary','undo'),('revertpage','rollback')]
     from_mediawiki = load_from_mediawiki(properties)
 
     from_extensions = load_from_extensions(properties)
@@ -223,18 +223,19 @@ def load_json(path, properties):
     languagesWithVariants = ['en','crh','gan','iu','kk','ku','shi','sr','tg','uz','zh']
     glob_str = "{0}/*.json".format(path)
     languages_files = glob.glob(glob_str)
+    
     for f in languages_files:
         pre_lang = variant_regex.match(f).groups()[0]
         is_variant = pre_lang in languagesWithVariants
         lang = regex.match(f).groups()[0]
         translations = json.load(open(f,'r'))
-        for prop in properties:
+        for prop, label in properties:
             if prop in translations:
                 summary_regex = to_regex(translations[prop])
                 if not is_variant:
-                    yield (lang, prop.split('-')[0],summary_regex)
+                    yield (lang, label, summary_regex)
                 else: 
-                    yield (pre_lang, prop.split('-')[0],summary_regex)
+                    yield (pre_lang, label, summary_regex)
 
 wiki_patterns = load_wiki_patterns()
 

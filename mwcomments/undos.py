@@ -119,18 +119,18 @@ def get_fallback_langs(site_info):
 
 def to_regex(summary):
     dollar_replace = re.compile(re.escape("$") + "\d")
-    gender_replace = re.compile(re.escape("{{") + "GENDER.*" + re.escape("}}"))
-    wikilink_replace = re.compile(re.escape("[[") + ".*" + re.escape("]]"))
+    gender_replace = re.compile(re.escape("\{\{") + "GENDER.*" + re.escape("\}\}"))
+    wikilink_replace = re.compile(re.escape("\[\[") + ".*" + re.escape("\]\]"))
     
     # remove final periods
     if summary[-1] == '.':
         summary = summary[0:-1]
 
+    summary = re.escape(summary)
     summary = dollar_replace.sub('(.*)',summary)
     summary = gender_replace.sub("(.*)",summary)
     summary = wikilink_replace.sub("(.*)",summary)
 
-    summary = re.escape(summary)
     return r"(?:.*{0}.*)".format(summary)
 
 def clone_if_not_available(repo_url):

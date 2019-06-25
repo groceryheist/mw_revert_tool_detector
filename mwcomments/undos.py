@@ -1,8 +1,10 @@
 # the first priority is on *.wikipedia.org/wiki/Mediawiki:Undo-summary
 # then comes ./mediawiki-extensions-WikimediaMessages/
 # finally comes ./mediawiki/languages/il8n/
+import git
+import tempfile
 from itertools import chain
-from functools import reduce, partial
+from functools import reduce, partial, 
 import os
 import subprocess
 import re
@@ -86,6 +88,8 @@ def load_wiki_patterns():
         patterns[wiki_db] = props
 
     json.dump(patterns, open("resources/wiki_patterns.json",'w'))
+
+    # we need to sort the patterns in reverse chronological order
     return patterns
                     
 def get_fallback_langs(site_info):
@@ -147,11 +151,11 @@ def load_from_api(wikimedia_sites):
 
 def _load_rollback_from_api(wikimedia_sites):
     it = _load_prefix_from_api(wikimedia_sites, "revertpage")
-    return ((wiki_db, "rollback", pattern) for wiki_db, pattern in it)
+    return ((wiki_db, "rollback", pattern, timestamp) for wiki_db, pattern, timstamp in it)
 
 def _load_undo_from_api(wikimedia_sites):
     it = _load_prefix_from_api(wikimedia_sites, "undo-summary")
-    return ((wiki_db, "undo", pattern) for wiki_db, pattern in it)
+    return ((wiki_db, "undo", pattern, timestamp) for wiki_db, pattern, timestamp in it)
 
 def _load_prefix_from_api(wikimedia_sites, page_prefix):
     with ThreadPoolExecutor() as executor:
@@ -184,13 +188,16 @@ def _load_from_api(wikimedia_site, page_prefix):
     allpages = res['query']['allpages']
 
     for page in allpages:
-        # then we get the text of that page
-        res2 = api.get(action="query",titles=[page['title']],prop="revisions",rvprop='content')
-        res_page = list(res2['query']['pages'].items())[0]
-        wiki_text = res_page[1]['revisions'][0]['*']
         print("found api settings for {0}".format(wiki_db))
-        msg = [line for line in wiki_text.split('\n') if len(line) > 0][0]
-        yield (wiki_db, to_regex(msg.strip()))
+        # then we get the text of that page
+        res2 = api.get(action="query",titles=[page['title']],prop="revisions",rvprop=['content','timestamp'], rvlimit='max')
+        res_page = res2['query']['pages'][str(page['pageid'])]
+        for revision in res_page['revisions']:
+            wiki_text = revision['*']
+            timestamp = revision['timestamp']
+
+            msg = [line for line in wiki_text.split('\n') if len(line) > 0][0]
+            yield (wiki_db, to_regex(msg.strip()), timestamp)
 
 
 def agg_patterns(d, t):
@@ -217,14 +224,19 @@ def load_from_mediawiki(properties):
     it = load_json("temp/mediawiki/languages/i18n/", properties)
     return reduce(agg_patterns, it, {})
 
-def load_json(path, properties):
-    regex = re.compile(r".*/(.*)\.json")
-    variant_regex = re.compile(r".*/([^-]*).*\.json")
-    languagesWithVariants = ['en','crh','gan','iu','kk','ku','shi','sr','tg','uz','zh']
-    glob_str = "{0}/*.json".format(path)
-    languages_files = glob.glob(glob_str)
-    
-    for f in languages_files:
+# config_path = 'languages/il18n'
+# git_path = 'temp/mediawiki'
+def load_json(git_path, config_path, properties):
+
+    # first find the language files
+    glob_str = "{0}/*.json".format(os.path.join(git_path,config_path))
+    languages_files = set(glob.glob(glob_str))
+
+    def parse_file(f, timestamp):
+        regex = re.compile(r".*/(.*)\.json")
+        variant_regex = re.compile(r".*/([^-]*).*\.json")
+        languagesWithVariants = ['en','crh','gan','iu','kk','ku','shi','sr','tg','uz','zh']
+
         pre_lang = variant_regex.match(f).groups()[0]
         is_variant = pre_lang in languagesWithVariants
         lang = regex.match(f).groups()[0]
@@ -233,19 +245,48 @@ def load_json(path, properties):
             if prop in translations:
                 summary_regex = to_regex(translations[prop])
                 if not is_variant:
-                    yield (lang, label, summary_regex)
+                    yield (lang, label, summary_regex, timestamp)
                 else: 
-                    yield (pre_lang, label, summary_regex)
+                    yield (pre_lang, label, summary_regex, timestamp)
 
+
+    def find_diffs(path, languages_files):
+        repo = git.Repo(path)
+        language_files = [f.replace(path+'/',"") for f in languages_files]
+
+        commits = repo.iter_commits('master',language_files)
+        for commit in commits:
+            parent = commit.parents[0] if commit.parents else EMPTY_TREE_SHA
+            diffs  = {
+                diff.a_path: diff for diff in commit.diff(parent)
+            }
+
+            repo.git.checkout(commit.hexsha)
+
+            for objpath, stats in commit.stats.files.items():
+                print(objpath)
+                diff = diffs.get(objpath)
+                if not diff:
+                    for diff in diffs.values():
+                        if diff.b_path == path and diff.renamed:
+                            break
+
+                yield parse_file(objpath, commit.commited_datetime)
+
+                    
 wiki_patterns = load_wiki_patterns()
 
-def match(comment, wiki): 
+
+def match(comment, wiki, timestamp): 
 
     try:
         props = wiki_patterns[wiki]
     except KeyError as e:
         raise KeyError(str(e)) from e
+    # iterating in reverse chronological order.
+    # use the first pattern that matches that is not from the future
     for k, properties in props.items():
+        
         for prop in properties: 
             if re.match(prop, comment):
                 yield k

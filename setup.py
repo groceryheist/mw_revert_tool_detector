@@ -9,6 +9,6 @@ setup(name="mwcomments",
       author_email="nathante@uw.edu",
       keywords=['mediawiki'],
       url=['https://github.com/groceryheist/python-mwcomments'],
-      install_requires=['mwapi','beautifulsoup4','lxml']
+      install_requires=['mwapi','beautifulsoup4','lxml','gitpython']
 )
 

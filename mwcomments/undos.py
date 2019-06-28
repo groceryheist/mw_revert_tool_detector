@@ -120,7 +120,7 @@ def _save_patterns(patterns):
                                   for t, regex in values]
                             for prop, values in props.items()
                         }
-                        for wiki, props in patterns
+                        for wiki, props in patterns.items()
     }
 
     json.dump(patterns_to_json, open("resources/wiki_patterns.json", 'w'))

@@ -325,13 +325,14 @@ def load_json(git_path, config_path, properties):
         language_files = [f.replace(path+'/',"") for f in languages_files]
         commits = repo.iter_commits('master', language_files)
         for commit in commits:
+            print(commit.committed_datetime)
             parent = commit.parents[0] if commit.parents else EMPTY_TREE_SHA
             diffs  = {
                 diff.a_path: diff for diff in commit.diff(parent)
             }
 
             repo.git.checkout('-f', commit.hexsha)
-            print(commit.committed_datetime)
+
             for objpath, stats in commit.stats.files.items():
                 if objpath in language_files:
                     diff = diffs.get(objpath)

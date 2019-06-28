@@ -258,7 +258,7 @@ def _load_from_api(wikimedia_site, page_prefix):
             wiki_text = revision['*']
             timestamp = revision['timestamp']
             timestamp = datetime.datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%SZ")
-
+            timestamp = timestamp.replace(tzinfo = datetime.timezone.utc)
             msg = [line for line in wiki_text.split('\n') if len(line) > 0][0]
 
             yield (wiki_db, to_regex(msg.strip()), timestamp)

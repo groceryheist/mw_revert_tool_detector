@@ -67,8 +67,6 @@ def _load_wiki_patterns_from_json(jsonobj):
 
 def _merge_time_lists(old, new):
     # take all the olds that come before the first new
-    print(old)
-    print(new)
     if old is None or len(old) == 0:
         return new
 
@@ -323,8 +321,6 @@ def load_json(git_path, config_path, properties):
                 else: 
                     yield (pre_lang, label, summary_regex, timestamp)
 
-
-
     def find_diffs(path, languages_files):
         repo = git.Repo(path)
         language_files = [f.replace(path+'/',"") for f in languages_files]
@@ -338,6 +334,8 @@ def load_json(git_path, config_path, properties):
 
             repo.git.checkout('-f', commit.hexsha)
 
+            
+            
             for objpath, stats in commit.stats.files.items():
                 if objpath in language_files:
                     diff = diffs.get(objpath)
@@ -346,7 +344,7 @@ def load_json(git_path, config_path, properties):
                             if diff.b_path == path and diff.renamed:
                                 break
 
-                    yield parse_file(os.path.join(path, objpath), commit.committed_datetime)
+                    yield list(parse_file(os.path.join(path, objpath), commit.committed_datetime))
 
     return find_diffs(git_path, languages_files)
                     

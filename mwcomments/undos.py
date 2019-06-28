@@ -84,11 +84,11 @@ def _merge_prop_dicts(old, new):
             
     
 # need to make this slightly fancier to account for time
-def _merge_patterns(from_api, from_mediawiki, from_extensions):
+def _merge_patterns(from_api, from_mediawiki, from_extensions, wikimedia_sites):
     patterns = {}
 
     not_found = []
-    for wiki_db, site_info in wikimedia_sites.items():
+g    for wiki_db, site_info in wikimedia_sites.items():
         props1 = from_api.get(wiki_db, SortedPairList([]))
         lang = site_info['lang']
         props2 = from_extensions.get(lang, SortedPairList([]))
@@ -146,7 +146,7 @@ def load_wiki_patterns():
 
     from_api = load_from_api(wikimedia_sites)
 
-    patterns = _merge_patterns(from_api, from_mediawiki, from_extensions)
+    patterns = _merge_patterns(from_api, from_mediawiki, from_extensions, wikimedia_sites)
 
     _save_patterns(patterns)
     
@@ -213,7 +213,7 @@ def load_from_api(wikimedia_sites):
 
 def _load_rollback_from_api(wikimedia_sites):
     it = _load_prefix_from_api(wikimedia_sites, "revertpage")
-    return ((wiki_db, "rollback", pattern, timestamp) for wiki_db, pattern, timstamp in it)
+    return ((wiki_db, "rollback", pattern, timestamp) for wiki_db, pattern, timestamp in it)
 
 def _load_undo_from_api(wikimedia_sites):
     it = _load_prefix_from_api(wikimedia_sites, "undo-summary")
@@ -337,6 +337,7 @@ def load_json(git_path, config_path, properties):
 
             repo.git.checkout('-f', commit.hexsha)
 
+            # probably want to check if the file is created or if it's missing for some other bad reason
             for objpath, stats in commit.stats.files.items():
                 if objpath in language_files:
                     diff = diffs.get(objpath)

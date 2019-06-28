@@ -89,10 +89,10 @@ def _merge_patterns(from_api, from_mediawiki, from_extensions, wikimedia_sites):
 
     not_found = []
     for wiki_db, site_info in wikimedia_sites.items():
-        props1 = from_api.get(wiki_db, SortedPairList([]))
+        props1 = from_api.get(wiki_db, {})
         lang = site_info['lang']
-        props2 = from_extensions.get(lang, SortedPairList([]))
-        props3 = from_mediawiki.get(lang, SortedPairList([]))
+        props2 = from_extensions.get(lang, {})
+        props3 = from_mediawiki.get(lang, {})
         patterns[wiki_db] = _merge_prop_dicts(props3,
                                               _merge_prop_dicts(props2, props1))
         if len(patterns[wiki_db]) == 0:
@@ -104,8 +104,8 @@ def _merge_patterns(from_api, from_mediawiki, from_extensions, wikimedia_sites):
         fall_back_langs = get_fallback_langs(site_info)
         props = {}
         for lang in fall_back_langs:
-            props1 = from_extensions.get(lang, SortedPairList([]))
-            props2 = from_mediawiki.get(lang, SortedPairList([]))
+            props1 = from_extensions.get(lang, {})
+            props2 = from_mediawiki.get(lang, {})
             props = _merge_prop_dicts(props2,
                                       _merge_prop_dicts(props1, props))
 

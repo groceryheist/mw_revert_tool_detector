@@ -88,7 +88,7 @@ def _merge_patterns(from_api, from_mediawiki, from_extensions, wikimedia_sites):
     patterns = {}
 
     not_found = []
-g    for wiki_db, site_info in wikimedia_sites.items():
+    for wiki_db, site_info in wikimedia_sites.items():
         props1 = from_api.get(wiki_db, SortedPairList([]))
         lang = site_info['lang']
         props2 = from_extensions.get(lang, SortedPairList([]))

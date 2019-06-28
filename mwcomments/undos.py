@@ -311,6 +311,10 @@ def load_json(git_path, config_path, properties):
         pre_lang = variant_regex.match(f).groups()[0]
         is_variant = pre_lang in languagesWithVariants
         lang = regex.match(f).groups()[0]
+
+        if not os.path.exists(f):
+            return
+        
         translations = json.load(open(f,'r'))
         for prop, label in properties:
             if prop in translations:

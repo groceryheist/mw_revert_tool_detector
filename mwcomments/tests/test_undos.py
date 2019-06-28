@@ -1,23 +1,25 @@
 import unittest
 import datetime
-from datetime import datetime
 from ..undos import match
 from ..undos import load_json
-from ..undos import _load_from_api
+from ..undos import _load_from_api, load_from_api, load_sitematrix
 from ..undos import load_from_extensions
 from ..undos import agg_patterns
 from ..undos import clone_if_not_available
 from ..undos import SortedPairList
 from ..undos import _merge_prop_dicts
+from ..undos import wiki_patterns
 import json
 from functools import partial, reduce
 from itertools import islice, chain
+import re
 
-fromisoformat = datetime.fromisoformat
+fromisoformat = datetime.datetime.fromisoformat
 class TestMatch(unittest.TestCase):
     def setUp(self):
         self.test_datetime = fromisoformat("2019-06-25")
-        self.test_match = partial(match, datetime = test_datetime)
+        self.test_datetime = self.test_datetime.replace(tzinfo=datetime.timezone.utc)
+        self.test_match = partial(match, timestamp = self.test_datetime)
 
     def test_huggle(self):
         message = "Message re. Dirty (disambiguation) (HG) (3.4.8)"
@@ -37,7 +39,11 @@ class TestMatch(unittest.TestCase):
         
     def test_rollback(self):
         message = "Reverted edits by [[Special:Contribs/Justthefacts98|Justthefacts98]] ([[User talk:Justthefacts98|talk]]) to last version by Someguy1221 (HG)"
-        self.assertSetEqual(set(self.test_match(message,'enwiki')),{'huggle','rollback'})
+
+        print("rollback:", wiki_patterns['enwiki']['rollback'][-1])
+        obj = self.test_match(message,'enwiki')
+        print(set(obj))
+        self.assertSetEqual(set(obj),{'huggle','rollback'})
 
     def test_fr_undo(self):
         message = "Annulation de la [[Special:Diff/$1|modification]] de [[Special:Contributions/$2|$2]] ([[User talk:$2|d]])"
@@ -59,18 +65,25 @@ class Test_Load_From_API(unittest.TestCase):
                 break
         self.assertTrue(match_1)
 
+    def test_enwiki_rollback(self):
+        site_info = {'enwiki':load_sitematrix()['enwiki']}
+
+        results = load_from_api(site_info)['enwiki']
+        rollback = results['rollback']
+        
 
 class Test_Load_From_Git(unittest.TestCase):
 
     def test_enwiki_undos(self):
         results = load_json("temp/mediawiki","languages/i18n",[("undo-summary","undo")])
         
-        known_value_1 = ("en", "undo", "(?:.*Undo\\ revision\\ (.*)\\ by\\ \\[\\[Special:Contributions/(.*)\\|(.*)\\]\\]\\ \\(\\[\\[User\\ talk:(.*)\\|talk\\]\\]\\).*)", "2019-06-14T18:12:51+00:00")
+        known_time = fromisoformat("2019-06-14T18:12:51+00:00")
+        known_value_1 = ("en", "undo", re.compile("(?:.*Undo\\ revision\\ (.*)\\ by\\ \\[\\[Special:Contributions/(.*)\\|(.*)\\]\\]\\ \\(\\[\\[User\\ talk:(.*)\\|talk\\]\\]\\).*)"), known_time)
         
         match_1 = False
         for result in results:
             for prop in result:
-                prop = (prop[0],prop[1],prop[2],prop[3].isoformat())
+                prop = (prop[0],prop[1],prop[2],prop[3])
                 if prop == known_value_1:
                     match_1 = True
                     break
@@ -100,7 +113,6 @@ class Test_Load_From_Git(unittest.TestCase):
         self.assertTrue('testprop' in r1['testwiki'])
         self.assertTrue(len(r1['testwiki']) == 1)
 
-        print(r1)
         self.assertTrue(r1['testwiki']['testprop'][0] == (date0, 'testpattern0'))
         self.assertTrue(r1['testwiki']['testprop'][1] == (date1, 'testpattern1'))
 
@@ -137,4 +149,3 @@ class Test_Load_From_Git(unittest.TestCase):
         reduced = reduce(agg_patterns, it, {})
 
         print(reduced)
-

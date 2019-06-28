@@ -128,13 +128,13 @@ def _save_patterns(patterns):
 
 def load_wiki_patterns():
 
-    # we could make this steaming potentially
-    # if resource_exists(__name__, 'resources/wiki_patterns.json'):
-    #     wiki_patterns_str = resource_string(__name__, 'resources/wiki_patterns.json')
-    #     jsonobj = json.loads(wiki_patterns_str.decode())
+#    we could make this steaming potentially
+    if resource_exists(__name__, 'resources/wiki_patterns.json'):
+        wiki_patterns_str = resource_string(__name__, 'resources/wiki_patterns.json')
+        jsonobj = json.loads(wiki_patterns_str.decode())
 
-    #     # conver the datastructure
-    #     return _load_wiki_patterns_from_json(jsonobj) 
+        # conver the datastructure
+        return _load_wiki_patterns_from_json(jsonobj) 
 
     properties = [('undo-summary', 'undo'), ('revertpage', 'rollback')]
 
@@ -213,11 +213,12 @@ def load_from_api(wikimedia_sites):
 
 def _load_rollback_from_api(wikimedia_sites):
     it = _load_prefix_from_api(wikimedia_sites, "revertpage")
-    return ((wiki_db, "rollback", pattern, timestamp) for wiki_db, pattern, timestamp in it)
+
+    return ((wiki_db, "rollback_nouser" if page_title.endswith("-nouser") else "rollback" , pattern, timestamp) for wiki_db, pattern, timestamp, page_title in it)
 
 def _load_undo_from_api(wikimedia_sites):
     it = _load_prefix_from_api(wikimedia_sites, "undo-summary")
-    return ((wiki_db, "undo", pattern, timestamp) for wiki_db, pattern, timestamp in it)
+    return ((wiki_db, "undo_nouser" if page_title.endswith("-nouser") else "undo", pattern, timestamp) for wiki_db, pattern, timestamp, page_title  in it)
 
 def _load_prefix_from_api(wikimedia_sites, page_prefix):
     with ThreadPoolExecutor() as executor:
@@ -261,7 +262,7 @@ def _load_from_api(wikimedia_site, page_prefix):
             timestamp = timestamp.replace(tzinfo = datetime.timezone.utc)
             msg = [line for line in wiki_text.split('\n') if len(line) > 0][0]
 
-            yield (wiki_db, to_regex(msg.strip()), timestamp)
+            yield (wiki_db, to_regex(msg.strip()), timestamp, page['title'])
 
 
 def agg_patterns(d, t):
@@ -356,7 +357,6 @@ def match(comment, wiki, timestamp):
     global wiki_patterns
     if wiki_patterns is None:
         wiki_patterns = load_wiki_patterns()
-
     try:
         props = wiki_patterns[wiki]
     except KeyError as e:
@@ -364,13 +364,16 @@ def match(comment, wiki, timestamp):
     # iterating in reverse chronological order.
     # use the first pattern that matches that is not from the future
     for prop_name, sorted_list in props.items():
-        for prop in properties:
-            idx = sorted_list.bisect_left(timestamp)
-            regexes = chain(sorted_list[idx], sorted_list[idx+1])
+        idx = sorted_list.bisect_right((timestamp,""))
+        print(idx, len(sorted_list))
+        if idx != len(sorted_list):
+            regexes = [regex for timestamp, regex in [sorted_list[idx-1], sorted_list[idx]]]
+        else:
+            regexes = [sorted_list[idx-1][1]]
 
-            for regex in regexes:
-                if regex.matrch(comment):
-                    yield prop_name
+        for regex in regexes:
+            if regex.match(comment):
+                yield prop_name
 
     if huggle_pattern.match(comment):
         yield "huggle"
@@ -383,5 +386,5 @@ huggle_pattern = re.compile(r".*\(HG\).*")
 twinkle_pattern = re.compile(r".*\(TW\).*")
 wiki_patterns = None
 
-if __name__ == "__main__":
-    wiki_patterns = load_wiki_patterns()
+# if __name__ == "__main__":
+wiki_patterns = load_wiki_patterns()

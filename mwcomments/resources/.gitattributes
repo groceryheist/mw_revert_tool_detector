@@ -1,0 +1,2 @@
+wikimedia_sites.json filter=lfs diff=lfs merge=lfs -text
+wiki_patterns.json filter=lfs diff=lfs merge=lfs -text

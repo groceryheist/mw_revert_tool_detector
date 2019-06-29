@@ -41,9 +41,11 @@ class TestMatch(unittest.TestCase):
         message = "Reverted edits by [[Special:Contribs/Justthefacts98|Justthefacts98]] ([[User talk:Justthefacts98|talk]]) to last version by Someguy1221 (HG)"
 
         print("rollback:", wiki_patterns['enwiki']['rollback'][-1])
-        obj = self.test_match(message,'enwiki')
-        print(set(obj))
-        self.assertSetEqual(set(obj),{'huggle','rollback'})
+        obj = set(self.test_match(message,'enwiki'))
+        print("rollback:", obj)
+        self.assertTrue('rollback' in obj)
+        self.assertTrue('huggle' in obj)
+        self.assertSetEqual(obj,{'rollback','huggle'})
 
     def test_fr_undo(self):
         message = "Annulation de la [[Special:Diff/$1|modification]] de [[Special:Contributions/$2|$2]] ([[User talk:$2|d]])"
@@ -54,13 +56,22 @@ class Test_Load_From_API(unittest.TestCase):
 
     def test_enwiki_undos(self):
         results = _load_from_api(("enwiki",{"url":"https://en.wikipedia.org"}),"undo-summary")
+        print(results)
 
-        known_value_1 = '["enwiki", "(?:.*Undid\\\\ revision\\\\ (.*)\\\\ by\\\\ \\\\[\\\\[Special:Contributions/(.*)\\\\|(.*)\\\\]\\\\]\\\\ \\\\(\\\\[\\\\[User\\\\ talk:(.*)\\\\|talk\\\\]\\\\]\\\\).*)", "2018-04-24T11:39:29"]'
+        known_date = fromisoformat("2018-04-24T11:39:29")
+        known_date = known_date.replace(tzinfo = datetime.timezone.utc)
+        known_value_1 = ("enwiki", re.compile(r"(?:.*Undid\ revision\ (.*)\ by\ \[\[Special:Contributions/(.*)\|(.*)\]\]\ \(\[\[User\ talk:(.*)\|talk\]\]\).*)"), known_date, "MediaWiki:Undo-summary")
 
         match_1 = False
+        first = False
         for result in results:
-            result = (result[0],result[1],result[2],result[3].isoformat())
-            if json.dumps(result) == known_value_1:
+            if first:
+                print("from api:", result)
+                first = False
+            if result[3] == known_date:
+
+                print("from api:", result)
+            if result == known_value_1:
                 match_1 = True
                 break
         self.assertTrue(match_1)

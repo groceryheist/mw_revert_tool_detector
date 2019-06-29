@@ -2,7 +2,6 @@
 # then comes ./mediawiki-extensions-WikimediaMessages/
 # finally comes ./mediawiki/languages/il8n/
 import datetime
-import git
 import tempfile
 from itertools import chain
 from functools import reduce, partial
@@ -302,6 +301,7 @@ def load_from_mediawiki(properties):
 # git_path = 'temp/mediawiki'
 # this is super not thread-safe
 def load_json(git_path, config_path, properties):
+    import git
     # first find the language files
     glob_str = "{0}/*.json".format(os.path.join(git_path, config_path))
     languages_files = set(glob.glob(glob_str))

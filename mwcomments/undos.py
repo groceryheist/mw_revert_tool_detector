@@ -15,6 +15,8 @@ from concurrent.futures import ThreadPoolExecutor
 from pkg_resources import resource_string, resource_exists
 import sortedcontainers
 from sortedcontainers import SortedList
+import dateutil.parser as date_parser
+
 user_agent = "mw_revert_tool_detector, project by groceryheist (Nathan TeBlunthuis) <nathante@uw.edu>))"
 EMPTY_TREE_SHA = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 
@@ -57,7 +59,7 @@ def load_sitematrix():
 def _load_wiki_patterns_from_json(jsonobj):
     return {wiki:
             {
-                prop: SortedPairList(((datetime.datetime.fromisoformat(t),
+                prop: SortedPairList(((date_parser.parse(t),
                                    re.compile(regex))
                                   for t, regex in values))
                 for prop, values in props.items()

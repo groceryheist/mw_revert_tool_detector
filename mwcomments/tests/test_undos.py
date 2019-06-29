@@ -14,7 +14,8 @@ from functools import partial, reduce
 from itertools import islice, chain
 import re
 
-fromisoformat = datetime.datetime.fromisoformat
+import dateutil.parser
+fromisoformat = dateutil.parser.parse
 class TestMatch(unittest.TestCase):
     def setUp(self):
         self.test_datetime = fromisoformat("2019-06-25")

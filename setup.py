@@ -1,6 +1,6 @@
 from setuptools import setup
 setup(name="mwcomments",
-      version="0.0.2",
+      version="0.0.3",
       description="Utilities for interpreting comments in edits to mediawiki wikis",
       license="GPL3",
       packages=['mwcomments'],
@@ -9,6 +9,6 @@ setup(name="mwcomments",
       author_email="nathante@uw.edu",
       keywords=['mediawiki'],
       url=['https://github.com/groceryheist/python-mwcomments'],
-      install_requires=['mwapi','beautifulsoup4','lxml','gitpython']
+      install_requires=['mwapi','beautifulsoup4','lxml','gitpython',"python-dateutil"]
 )
 

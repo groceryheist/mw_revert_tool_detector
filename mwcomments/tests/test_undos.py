@@ -1,6 +1,5 @@
 import unittest
 import datetime
-from ..undos import match
 from ..undos import load_json
 from ..undos import _load_from_api, load_from_api, load_sitematrix
 from ..undos import load_from_extensions
@@ -8,7 +7,7 @@ from ..undos import agg_patterns
 from ..undos import clone_if_not_available
 from ..undos import SortedPairList
 from ..undos import _merge_prop_dicts
-from ..undos import wiki_patterns
+from ..undos import wiki_patterns, to_regex
 import json
 from functools import partial, reduce
 from itertools import islice, chain
@@ -16,8 +15,21 @@ import re
 
 import dateutil.parser
 fromisoformat = dateutil.parser.parse
+
+class TestToRegex(unittest.TestCase):
+
+    # test that we can convert {{ifexpr}}.. templates into reasonable regular expressions
+    def test_ifexpr(self):
+        test_str = "Undid revision $1 by {{#ifexpr:{{#invoke:String|len|$2}}>25|[[User:$2]]|[[Special:Contributions/$2|$2]] ([[User talk:$2|talk]])}}"
+
+        goal_str = r"(?:.*Undid\ revision\ (.*)\ by\ (\[\[User:(.*)\]\])|(\[\[Special:Contributions/(.*)\|(.*)\]\]\ \(\[\[User\ talk:(.*)\|talk\]\]\)).*)"
+        
+        result = to_regex(test_str)
+        self.assertEqual(result.pattern,goal_str)
+
 class TestMatch(unittest.TestCase):
     def setUp(self):
+        from ..undos import match
         self.test_datetime = fromisoformat("2019-06-25")
         self.test_datetime = self.test_datetime.replace(tzinfo=datetime.timezone.utc)
         self.test_match = partial(match, timestamp = self.test_datetime)
@@ -70,7 +82,6 @@ class Test_Load_From_API(unittest.TestCase):
                 print("from api:", result)
                 first = False
             if result[3] == known_date:
-
                 print("from api:", result)
             if result == known_value_1:
                 match_1 = True
@@ -161,3 +172,4 @@ class Test_Load_From_Git(unittest.TestCase):
         reduced = reduce(agg_patterns, it, {})
 
         print(reduced)
+

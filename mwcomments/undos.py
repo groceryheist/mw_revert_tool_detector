@@ -183,17 +183,47 @@ def get_fallback_langs(site_info):
     for lang in fall_backlangs:
         yield lang['code']
 
-def to_regex(summary, ):
+def apply_parser_functions(summary):
+    import wikitextparser as wtp
+    parsed = wtp.parse(summary)
+
+    parser_functions = parsed.parser_functions
+
+    def ifexpr(pf):
+        cond, op1, op2 = pf.arguments
+        return r'({0})|({1})'.format(re.escape(op1.value), re.escape(op2.value))
+
+    def invoke(pf):
+        t, func, op = pf.arguments
+        if t[0].parent().name == '#ifexpr':
+            return ""
+
+    wikitemplate_patterns = {"#ifexpr": ifexpr, "#invoke": invoke}
+    
+    if len(parser_functions) > 0:
+        pf = parser_functions[0]
+        span = pf.span
+        if pf.name in wikitemplate_patterns:
+            evaled_func = wikitemplate_patterns[pf.name](pf)
+            summary = re.escape(summary[0:span[0]]) + evaled_func + re.escape(summary[span[1]:])
+            return summary
+
+    else:
+        return re.escape(summary)
+
+def to_regex(summary):
     dollar_replace = re.compile(re.escape("\$") + "\d")
     gender_replace = re.compile(re.escape("\{\{") + "GENDER.*" + re.escape("\}\}"))
 
-    # remove final periods
     if summary[-1] == '.':
         summary = summary[0:-1]
 
-    summary = re.escape(summary)
+    summary = apply_parser_functions(summary)
+
     summary = dollar_replace.sub('(.*)',summary)
     summary = gender_replace.sub("(.*)",summary)
+
+    # remove final periods
     return re.compile(r"(?:.*{0}.*)".format(summary))
 
 def clone_if_not_available(repo_url):
@@ -388,5 +418,4 @@ huggle_pattern = re.compile(r".*\(HG\).*")
 twinkle_pattern = re.compile(r".*\(TW\).*")
 wiki_patterns = None
 
-# if __name__ == "__main__":
 wiki_patterns = load_wiki_patterns()

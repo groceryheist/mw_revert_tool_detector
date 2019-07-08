@@ -191,7 +191,7 @@ def apply_parser_functions(summary):
 
     def ifexpr(pf):
         cond, op1, op2 = pf.arguments
-        return r'({0})|({1})'.format(re.escape(op1.value), re.escape(op2.value))
+        return r'(?:{0}|{1})'.format(re.escape(op1.value), re.escape(op2.value))
 
     def invoke(pf):
         t, func, op = pf.arguments
@@ -418,4 +418,4 @@ huggle_pattern = re.compile(r".*\(HG\).*")
 twinkle_pattern = re.compile(r".*\(TW\).*")
 wiki_patterns = None
 
-wiki_patterns = load_wiki_patterns()
+#wiki_patterns = load_wiki_patterns()

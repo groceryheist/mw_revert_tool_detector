@@ -22,7 +22,7 @@ class TestToRegex(unittest.TestCase):
     def test_ifexpr(self):
         test_str = "Undid revision $1 by {{#ifexpr:{{#invoke:String|len|$2}}>25|[[User:$2]]|[[Special:Contributions/$2|$2]] ([[User talk:$2|talk]])}}"
 
-        goal_str = r"(?:.*Undid\ revision\ (.*)\ by\ (\[\[User:(.*)\]\])|(\[\[Special:Contributions/(.*)\|(.*)\]\]\ \(\[\[User\ talk:(.*)\|talk\]\]\)).*)"
+        goal_str = r"(?:.*Undid\ revision\ (.*)\ by\ (?:\[\[User:(.*)\]\]|\[\[Special:Contributions/(.*)\|(.*)\]\]\ \(\[\[User\ talk:(.*)\|talk\]\]\)).*)"
         
         result = to_regex(test_str)
         self.assertEqual(result.pattern,goal_str)

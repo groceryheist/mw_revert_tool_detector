@@ -418,4 +418,4 @@ huggle_pattern = re.compile(r".*\(HG\).*")
 twinkle_pattern = re.compile(r".*\(TW\).*")
 wiki_patterns = None
 
-#wiki_patterns = load_wiki_patterns()
+wiki_patterns = load_wiki_patterns()

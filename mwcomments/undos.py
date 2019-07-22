@@ -15,148 +15,127 @@ from pkg_resources import resource_string, resource_exists
 import sortedcontainers
 from sortedcontainers import SortedList
 import dateutil.parser as date_parser
-
-user_agent = "mw_revert_tool_detector, project by groceryheist (Nathan TeBlunthuis) <nathante@uw.edu>))"
-EMPTY_TREE_SHA = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
-
-SortedPairList = partial(SortedList,key = lambda pair: pair[0])
-
-# we want, dbname -> (url, lang)
-def load_sitematrix():
-
-    if resource_exists(__name__, 'resources/wikimedia_sites.json'):
-        wikimedia_sites = resource_string(__name__, 'resources/wikimedia_sites.json')
-        return json.loads(wikimedia_sites.decode())
-
-    import mwapi
-    api = mwapi.Session("https://en.wikipedia.org", user_agent = user_agent)
-    site_matrix = api.get(action='sitematrix')['sitematrix']
-
-    def gen_sitematrix(site_matrix):
-        for i, data in site_matrix.items():
-            if type(data) is not dict:
-                continue
-
-            lang = data['code']
-
-            for site_data in data['site']:
-                yield (site_data['dbname'],{'url':site_data['url'], 'lang':lang})
-
-        for site_data in site_matrix['specials']:
-            lang = site_data['lang']
-            yield (site_data['dbname'],{'url':site_data['url'], 'lang':lang})
-
-    # add wikidata manually
-    wikimedia_sites = dict(gen_sitematrix(site_matrix))
-    
-    if os.path.exists("resources"):
-        if not os.path.exists("resources/wikimedia_sites.json"):
-            json.dump(wikimedia_sites, open("resources/wikimedia_sites.json",'w'))
-
-    return wikimedia_sites
-
-def _load_wiki_patterns_from_json(jsonobj):
-    return {wiki:
-            {
-                prop: SortedPairList(((date_parser.parse(t),
-                                   re.compile(regex))
-                                  for t, regex in values))
-                for prop, values in props.items()
-            }
-            for wiki, props in jsonobj.items()}
+from . import EditSummary, EditSummaryEncoder
 
 
-def _merge_time_lists(old, new):
-    # take all the olds that come before the first new
-    if old is None or len(old) == 0:
-        return new
+def patterns_to_regex(patterns, wikimedia_sites):
+    for wiki, prop in patterns.items():
+        for time, summary in prop.items():
+            patterns[wiki][prop][time] = to_regex(summary, wikimedia_sites[wiki])
+    return patterns
 
-    if new is None or len(new) == 0:
-        return old
+def to_regex(summary, site_info):
+        
+    dollar_replace = re.compile(re.escape("\$") + "\d")
+    gender_replace = re.compile(re.escape("\{\{") + "GENDER.*" + re.escape("\}\}"))
 
-    min_new = new[0]
-    kept_old = old.irange(None, min_new, inclusive=(True, False))
-    new.update(kept_old)
-    return new
+    if summary[-1] == '.':
+        summary = summary[0:-1]
+
+    summary = apply_parser_functions(summary, site_info)
+
+    summary = dollar_replace.sub('(.*)',summary)
+    summary = gender_replace.sub("(.*)",summary)
+
+    # remove final periods
+    return re.compile(r"(?:.*{0}.*)".format(summary))
+
+# TODO: specifically handle nested parser functions 
+def apply_parser_functions(summary, site_info):
+
+    import wikitextparser as wtp
+    parsed = wtp.parse(summary)
+
+    parser_functions = parsed.parser_functions
+
+    def ifexpr(pf):
+        cond, op1, op2 = pf.arguments
+        return r'(?:{0}|{1})'.format(re.escape(op1.value), re.escape(op2.value))
+
+    def invoke(pf):
+        t, func, op = pf.arguments
+        if t[0].parent().name == '#ifexpr':
+            return ""
+
+    def gender(pf):
+        t, a, b, c = pf.arguments
+        return r'(?:{0}|{1}|{2})'.format(re.escape(a), re.escape(b), re.escape(c))
+
+    # special pages can probably be had from the siteinfo api too.
+    # one problem might be that the siteinfo falls out of date.
+    def special(pf):
+        api = get_api(site_info['url'])
+        result = api.get(action='query', meta='siteinfo', siprop = ['magicwords'])
+        special_aliases = chain(* [x['aliases'] for x in result['query']['magicwords'] if  x['name'] == 'special'])
+        regex = r'(?:{0})'.format('|'.join(special_aliases))
+        return regex
     
 
-def _merge_prop_dicts(old, new):
-    return {k: _merge_time_lists(old.get(k), new.get(k)) for k in set(chain(old.keys(), new.keys()))}
+    def extractLocalizedNamespaces(lang, date):
+        def get_relevant_commits(lang, date):
+            commits = repo.iter_commits("master",[msgs_php_fh])
+            commits_prior_to_date = [c for c in commits if c.committed_datetime <= date]
+            return commits_prior_to_date[-2:]
+
+        def convert_php_dict(php_dict):
+            elems = php_dict.split(',')
+            return {a.strip():b.strip().replace("'","") for a,b in [e.split("=>")[0:2] for e in elems if '=>' in e]}
+        
+        def parse_localized_namespaces(filehandle):
+            php_code = open(filehandle).read()
             
-    
-# need to make this slightly fancier to account for time
-def _merge_patterns(from_api, from_mediawiki, from_extensions, wikimedia_sites):
-    patterns = {}
+            namespace_regex = re.compile(r"\$namespaceNames\s*=\s*\[(.*?)\];", flags = re.S)
+n
+            php_dict = namespace_regex.findall(php_code)[0]
+            
+            namespace_dict = convert_php_dict(php_dict)
+            return namespace_dict
+            
 
-    not_found = []
-    for wiki_db, site_info in wikimedia_sites.items():
-        props1 = from_api.get(wiki_db, {})
-        lang = site_info['lang']
-        props2 = from_extensions.get(lang, {})
-        props3 = from_mediawiki.get(lang, {})
-        patterns[wiki_db] = _merge_prop_dicts(props3,
-                                              _merge_prop_dicts(props2, props1))
-        if len(patterns[wiki_db]) == 0:
-            not_found.append(wiki_db)
-
-    # for the ones still missing get siteinfo from the api
-    for wiki_db in not_found:
-        site_info = wikimedia_sites[wiki_db]
-        fall_back_langs = get_fallback_langs(site_info)
-        props = {}
-        for lang in fall_back_langs:
-            props1 = from_extensions.get(lang, {})
-            props2 = from_mediawiki.get(lang, {})
-            props = _merge_prop_dicts(props2,
-                                      _merge_prop_dicts(props1, props))
-
-        patterns[wiki_db] = props
-
-    return patterns
-
-def _save_patterns(patterns):
-    patterns_to_json = {wiki:
-                        {
-                            prop:[(t.isoformat(), regex.pattern)
-                                  for t, regex in values]
-                            for prop, values in props.items()
-                        }
-                        for wiki, props in patterns.items()
-    }
-
-    json.dump(patterns_to_json, open("resources/wiki_patterns.json", 'w'))
+        import git
+        repo_path = "temp/mediawiki"
+        repo = git.Repo(repo_path)
+        lang = lang[0].upper() + lang[1:]
+        msgs_php_fh = os.path.join("languages","Messages{0}.php".format(lang))
 
 
-def load_wiki_patterns():
+        commits = get_relevant_commits(lang, date)
 
-#    we could make this steaming potentially
-    if resource_exists(__name__, 'resources/wiki_patterns.json'):
-        wiki_patterns_str = resource_string(__name__, 'resources/wiki_patterns.json')
-        jsonobj = json.loads(wiki_patterns_str.decode())
 
-        # conver the datastructure
-        return _load_wiki_patterns_from_json(jsonobj) 
+        for commit in commits:
+            repo.git.checkout('-f', commit)
+            yield (parse_localized_namespaces(os.path.join(path,msgs_php_fh)))
 
-    properties = [('undo-summary', 'undo'), ('revertpage', 'rollback')]
+    # TODO we need to handle localiztion templates using the api by passing in the url and the date.
+    # NS can be got from the siteinfo api
+    # we'll need to look up the namespace from git. 
+    def ns(pf):
+        # get langs from siteinfos
+        # pass in the date in siteinfo
 
-    from_mediawiki = load_from_mediawiki(properties)
+        namespace_dicts = extractLocalizedNamespaces(lang,date)
+        namespace_name = pf.
 
-    from_extensions = load_from_extensions(properties)
+    wikitemplate_patterns = {"#ifexpr": ifexpr, "#invoke": invoke, "ns":ns, 'gender':gender, "#special":special}
 
-    wikimedia_sites = load_sitematrix()
+    if len(parser_functions) > 0:
+        
+        pf = parser_functions[0]
+        span = pf.span
+        if pf.name in wikitemplate_patterns:
+            evaled_func = wikitemplate_patterns[pf.name.lower()](pf)
+            summary = re.escape(summary[0:span[0]]) + evaled_func + re.escape(summary[span[1]:])
+            return summary
 
-    from_api = load_from_api(wikimedia_sites)
+    else:
+        return re.escape(summary)
 
-    patterns = _merge_patterns(from_api, from_mediawiki, from_extensions, wikimedia_sites)
-
-    _save_patterns(patterns)
-    
-    # we need to sort the patterns in reverse chronological order
-    return patterns
 
 def get_fallback_langs(site_info):
+
     import mwapi
-    api = mwapi.Session(site_info['url'], user_agent)
+    api = get_api(site_info['url'])
+
     try:
         res = api.get(action='query', meta='siteinfo')
 
@@ -183,117 +162,6 @@ def get_fallback_langs(site_info):
     for lang in fall_backlangs:
         yield lang['code']
 
-def apply_parser_functions(summary):
-    import wikitextparser as wtp
-    parsed = wtp.parse(summary)
-
-    parser_functions = parsed.parser_functions
-
-    def ifexpr(pf):
-        cond, op1, op2 = pf.arguments
-        return r'(?:{0}|{1})'.format(re.escape(op1.value), re.escape(op2.value))
-
-    def invoke(pf):
-        t, func, op = pf.arguments
-        if t[0].parent().name == '#ifexpr':
-            return ""
-
-    wikitemplate_patterns = {"#ifexpr": ifexpr, "#invoke": invoke}
-    
-    if len(parser_functions) > 0:
-        pf = parser_functions[0]
-        span = pf.span
-        if pf.name in wikitemplate_patterns:
-            evaled_func = wikitemplate_patterns[pf.name](pf)
-            summary = re.escape(summary[0:span[0]]) + evaled_func + re.escape(summary[span[1]:])
-            return summary
-
-    else:
-        return re.escape(summary)
-
-def to_regex(summary):
-    dollar_replace = re.compile(re.escape("\$") + "\d")
-    gender_replace = re.compile(re.escape("\{\{") + "GENDER.*" + re.escape("\}\}"))
-
-    if summary[-1] == '.':
-        summary = summary[0:-1]
-
-    summary = apply_parser_functions(summary)
-
-    summary = dollar_replace.sub('(.*)',summary)
-    summary = gender_replace.sub("(.*)",summary)
-
-    # remove final periods
-    return re.compile(r"(?:.*{0}.*)".format(summary))
-
-def clone_if_not_available(repo_url):
-    repo_name = repo_url.split('/')[-2]
-    dest_path = os.path.join("temp",repo_name)
-    if not os.path.exists(dest_path):
-        if not os.path.exists("temp"):
-            os.mkdir("temp")
-        os.chdir("temp")
-        subprocess.call(["git","clone",repo_url])
-        os.chdir("..")
-
-    return dest_path
-
-def load_from_api(wikimedia_sites):
-    it = chain(_load_rollback_from_api(wikimedia_sites), _load_undo_from_api(wikimedia_sites))
-    return reduce(agg_patterns, it, {})
-
-def _load_rollback_from_api(wikimedia_sites):
-    it = _load_prefix_from_api(wikimedia_sites, "revertpage")
-
-    return ((wiki_db, "rollback_nouser" if page_title.endswith("-nouser") else "rollback" , pattern, timestamp) for wiki_db, pattern, timestamp, page_title in it)
-
-def _load_undo_from_api(wikimedia_sites):
-    it = _load_prefix_from_api(wikimedia_sites, "undo-summary")
-    return ((wiki_db, "undo_nouser" if page_title.endswith("-nouser") else "undo", pattern, timestamp) for wiki_db, pattern, timestamp, page_title  in it)
-
-def _load_prefix_from_api(wikimedia_sites, page_prefix):
-    with ThreadPoolExecutor() as executor:
-        return chain(* executor.map(partial(_load_from_api,page_prefix = page_prefix), wikimedia_sites.items()))
-
-def _load_from_api(wikimedia_site, page_prefix):
-    from bs4 import BeautifulSoup as bs
-    import mwapi
-    
-    wiki_db, site_info = wikimedia_site
-
-    # first we search for the page we're looking for
-    api = mwapi.Session(site_info['url'], user_agent=user_agent)
-
-    try:
-        res = api.get(action="query", list="allpages", apprefix=page_prefix, aplimit="max", apnamespace=8)
-
-    except mwapi.errors.ConnectionError as e:
-        print(e)
-        return
-
-    except ValueError as e:
-        print(e)
-        return
-
-    except mwapi.errors.APIError as e:
-        print(e)
-        return
-
-    allpages = res['query']['allpages']
-
-    for page in allpages:
-        print("found api settings for {0}".format(wiki_db))
-        # then we get the text of that page
-        res2 = api.get(action="query",titles=[page['title']],prop="revisions",rvprop=['content','timestamp'], rvlimit='max')
-        res_page = res2['query']['pages'][str(page['pageid'])]
-        for revision in res_page['revisions']:
-            wiki_text = revision['*']
-            timestamp = revision['timestamp']
-            timestamp = datetime.datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%SZ")
-            timestamp = timestamp.replace(tzinfo = datetime.timezone.utc)
-            msg = [line for line in wiki_text.split('\n') if len(line) > 0][0]
-
-            yield (wiki_db, to_regex(msg.strip()), timestamp, page['title'])
 
 
 def agg_patterns(d, t):
@@ -313,76 +181,10 @@ def agg_patterns(d, t):
     return d
 
 
-def load_from_git(git_path, config_path, properties):
-    it = chain(* load_json(git_path, config_path, properties))
-    return reduce(agg_patterns, it, {})
-
 def load_from_extensions(properties):
     git_path = clone_if_not_available("https://github.com/wikimedia/mediawiki-extensions-WikimediaMessages/")
     config_path = "/i18n/wikimediaoverrides"
     return load_from_git(git_path, config_path, properties)
-    
-def load_from_mediawiki(properties):
-    git_path = clone_if_not_available("https://github.com/wikimedia/mediawiki/")
-    config_path = "languages/i18n/"
-    return load_from_git(git_path, config_path, properties)
-
-# config_path = 'languages/il18n'
-# git_path = 'temp/mediawiki'
-# this is super not thread-safe
-def load_json(git_path, config_path, properties):
-    import git
-    # first find the language files
-    glob_str = "{0}/*.json".format(os.path.join(git_path, config_path))
-    languages_files = set(glob.glob(glob_str))
-
-    def parse_file(f, timestamp):
-        regex = re.compile(r".*/(.*)\.json")
-        variant_regex = re.compile(r".*/([^-]*).*\.json")
-        languagesWithVariants = ['en','crh','gan','iu','kk','ku','shi','sr','tg','uz','zh']
-
-        pre_lang = variant_regex.match(f).groups()[0]
-        is_variant = pre_lang in languagesWithVariants
-        lang = regex.match(f).groups()[0]
-
-        if not os.path.exists(f):
-            return
-        
-        translations = json.load(open(f,'r'))
-        for prop, label in properties:
-            if prop in translations:
-                summary_regex = to_regex(translations[prop])
-                if not is_variant:
-                    yield (lang, label, summary_regex, timestamp)
-                else: 
-                    yield (pre_lang, label, summary_regex, timestamp)
-
-    def find_diffs(path, languages_files):
-        repo = git.Repo(path)
-        language_files = [f.replace(path+'/',"") for f in languages_files]
-        commits = repo.iter_commits('master', language_files)
-        for commit in commits:
-            print(commit.committed_datetime)
-            parent = commit.parents[0] if commit.parents else EMPTY_TREE_SHA
-            diffs  = {
-                diff.a_path: diff for diff in commit.diff(parent)
-            }
-
-            repo.git.checkout('-f', commit.hexsha)
-
-            # probably want to check if the file is created or if it's missing for some other bad reason
-            for objpath, stats in commit.stats.files.items():
-                if objpath in language_files:
-                    diff = diffs.get(objpath)
-                    if not diff:
-                        for diff in diffs.values():
-                            if diff.b_path == path and diff.renamed:
-                                break
-
-                    yield list(parse_file(os.path.join(path, objpath), commit.committed_datetime))
-
-    return find_diffs(git_path, languages_files)
-                    
 
 def match(comment, wiki, timestamp):
 

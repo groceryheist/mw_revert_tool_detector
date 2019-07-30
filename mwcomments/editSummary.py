@@ -1,13 +1,14 @@
-from colletions import namedtuple
+from util import fromisoformat
 
+class EditSummary(object):
+    __slots__ = ['datetime', 'message', 'wiki']
 
-class EditSummary(namedtuple('EditSummary',['date','message', 'wiki'])):
-    __slots__ = ['date', 'message', 'wiki']
-
-    def __init__(date, message, wiki):
-        self.date = date
+    def __init__(datetime, message, wiki):
+        if isinstance(datetime, str):
+            date = fromisoformat(str)
+        self.datetime = datetime
         self.message = message
-        self.source = source
+        self.wiki = wiki
 
     @staticmethod
     def from_dict(d):

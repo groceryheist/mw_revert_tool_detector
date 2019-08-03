@@ -36,7 +36,7 @@ def _apply_parser_functions(summary, siteInfo, dt):
             evaled_func = wikitemplate_patterns[pf.name.lower()](new_args)
             return evaled_func
         else:
-            print("unknown parser function:{0}".pf.name)
+            print("unknown parser function:{0}".format(pf.name))
             return re.escape(pf.string.strip())
 
     def ifexpr(new_args):

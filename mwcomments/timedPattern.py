@@ -30,3 +30,6 @@ class TimedPattern(namedtuple('TimedPattern', ['time', 'pattern'])):
         time = date_parser.parse(jsonobj['time'])
         pattern = jsonobj.compile(jsonobj['pattern'])
         return TimedPattern(time=time, pattern=pattern)
+
+    def match(self, editSummary):
+        return self.pattern.match(editSummary.message)

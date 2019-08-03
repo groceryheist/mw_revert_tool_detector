@@ -14,7 +14,7 @@ class SiteInfoEncoder(JSONEncoder):
             return JSONEncoder.default(obj)
 
 class SiteInfo(object):
-    __slots__ = ['SiteInfo','url','langcode','_msgs_php_files','local_namespaces_byname','namespaces_byid','special_aliases','fallback_langs', 'special_prefixes', 'canonical_namespaces_byid','canonical_namespaces_byname','lang_variants', 'toolMap']
+    __slots__ = ['SiteInfo','url','langcode','_msgs_php_files','local_namespaces_byname','namespaces_byid','special_aliases','fallback_langs', 'special_prefixes', 'canonical_namespaces_byid','canonical_namespaces_byname','lang_variants', 'toolMap','have_info']
     
     def to_dict(self):
         return {'url':self.url,
@@ -33,7 +33,9 @@ class SiteInfo(object):
     def __init__(self, url):
         self.url = url
         api = get_api(self.url)
-        self._lookup_siteinfo(api)
+        self.have_info = self._lookup_siteinfo(api)
+        if not self.have_info:
+            return None
         
         if self.lang_variants is None:
             langSuffixes = [self.langcode[0].upper() + self.langcode[1:]]
@@ -47,13 +49,29 @@ class SiteInfo(object):
         # this structure is going to map from ns_id -> pairedSortedList
 
     def _lookup_siteinfo(self, api):
-        result = api.get(action='query',meta='siteinfo', siprop=['general','namespaces','specialpagealiases','magicwords'])
+        from mwapi.errors import APIError
+        try:
+            result = api.get(action='query',meta='siteinfo', siprop=['general','namespaces','specialpagealiases','magicwords'])
+
+        except APIError as e:
+            print(e)
+            return None
+
+        except ValueError as e:
+            print(e)
+            return
+
+        except Exception as e:
+            print(e)
+            return
+            
+
         general =result['query']['general']
 
         self.langcode =general['lang']
 
         if "fallback" in general:
-            self.fallback_langs = list(chain([[code
+            self.fallback_langs = list(chain(* [[code
                                           for _, code
                                           in fb.items()]
                                          for fb in 
@@ -99,6 +117,7 @@ class SiteInfo(object):
         special_prefixes.add(self.namespaces_byid[-1])
         special_prefixes.add(self.canonical_namespaces_byid[-1])
         self.special_prefixes = sorted(special_prefixes)
+        return True
 
     def lookup_localized_namespace(self, ns, datetime):
 

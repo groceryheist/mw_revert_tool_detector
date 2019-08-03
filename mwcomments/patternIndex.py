@@ -7,7 +7,10 @@ from datetime import datetime
 from timedPattern import TimedPattern
 from functools import partial
 
-TimedPatternSortedList = partial(SortedList, key = lambda timedPattern: timedPattern.time)
+def _dottime(timedPattern):
+    return timedPattern.time
+
+TimedPatternSortedList = partial(SortedList, key = _dottime)
 
 class PatternIndexEncoder(JSONEncoder):
     def default(self, obj):
@@ -59,20 +62,25 @@ class PatternIndex(object):
 
     def add(self, time=None, pattern=None, timedPattern=None):
         if time is not None and pattern is not None:
-            self.index.add(TimedPattern(time, pattern))
+            timedPattern = TimedPattern(time, pattern)
         elif timedPattern is not None:
-            self.index.add(timedPattern)
+            timedPattern = timedPattern
         else:
             raise ValueError("""
             either time and pattern or timedPattern must not be None
             """)
 
+        previous_pattern = get_previous_time_from_index(self.index, timedPattern.time)
+        if previous_pattern != timedPattern.pattern:
+            self.index.add(timedPattern)
+
     def convert_to_regex(self, siteInfo):
 
         patterns = map(lambda tp: tp.convert_to_regex(siteInfo), self.index)
-
-        self.index = PatternIndex.from_timed_patterns(patterns)
+        patterns = list(patterns)
+        self.index = TimedPatternSortedList(patterns)
         self.ready = True
+        
         return self
 
     # def add(self, timedPattern, siteInfo):
@@ -107,7 +115,7 @@ class PatternIndex(object):
 
         previous_time = get_previous_time_from_index(self.index, editSummary.datetime)
         pattern = self.index[previous_time]
-        return pattern.match(editSummary.comment)
+        return pattern.match(editSummary)
 
     
     def __repr__(self):

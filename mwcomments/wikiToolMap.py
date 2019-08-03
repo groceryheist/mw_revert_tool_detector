@@ -44,7 +44,7 @@ class WikiToolMap(object):
         identifying the timestamp of the edit.
         """
         
-        return self._match(EditSummary(date, message, source))
+        return self._match(EditSummary(date, comment, wiki_db))
 
     def _match(self, editSummary):
         """ 
@@ -57,14 +57,15 @@ class WikiToolMap(object):
 
         toolMap = self.wikiToolMap[editSummary.wiki]
 
-        huggle_pattern = re.compile(r".*\(HG\).*")
-        twinkle_pattern = re.compile(r".*\(TW\).*")
+        huggle_pattern = re.compile(r".*(:?(\(HG\)|\(\[\[.*\|HG\]\]\)|\(\[\[.*\|Huggle\]\]\))).*")
+        twinkle_pattern = re.compile(r".*(:?\(TW\)|\(\[\[.*\|TW\]\]\)\)|\(\[\[.*\|Twinkle\]\]\)\)).*")
+        stiki_pattern = re.compile(r".*(:?using\ \[\[WP:STiki\|STiki\]\]).*")
 
+        tool_patterns = zip(["huggle", "twinkle", "stiki"], [huggle_pattern, twinkle_pattern, stiki_pattern])
         tools = []
-        if huggle_pattern.match(editSummary.wiki):
-            tools.append('huggle')
-        if twinkle_pattern.match(editSummary.wiki):
-            tools.append('twinkle')
+        for name, pattern in tool_patterns: 
+            if pattern.match(editSummary.message):
+                tools.append(name)
             
         tools.extend(toolMap.match(editSummary))
 
@@ -78,21 +79,24 @@ class WikiToolMap(object):
 
         else:
             if _siteInfos is None:
-                wikimedia_sites = SiteMatrix()
+                print("looking up siteinfos from the api")
+                wikimedia_sites = SiteList()
 
                 siteInfos = {}
                 for site in wikimedia_sites:
-                    siteInfos[site] = siteInfo(site.url)
+                    si = SiteInfo(site.url)
+                    if si.have_info:
+                        siteInfos[site] = si
 
             else:
                 siteInfos = _siteInfos
 
+            print("loading toolmaps from all sources")
             wtm = WikiToolMap.from_all_sources(properties, siteInfos)
 
             wtm = wtm.convert_to_regex(siteInfos)
 
-            wtm.save()
-            
+            return wtm
             
 
     # think about promoting SiteInfos to an object property
@@ -207,16 +211,15 @@ class WikiToolMap(object):
             git_toolMap = from_git[siteInfo.langcode]
             primary_toolMap = api_toolMap.merge(git_toolMap)
             
-            print(api_toolMap)
-            print(wiki_db)
-            print(primary_toolMap)
-            if primary_toolMap.empty():
-                for lang in siteInfo.fallback_langs:
-                    git_toolMap = from_git[lang]
-                    if not git_toolMap.empty():
-                        primary_toolMap = git_toolMap
-                        break
-
+            # we may need fallback langs in the past
+            # merge will use right-hand patterns if
+            # there are no left-hand patterns before the time period
+            # we assume that nobody every deletes a configuration
+            # once it is created
+            for lang in siteInfo.fallback_langs:
+                git_toolMap = from_git[lang]
+                if not git_toolMap.empty():
+                    primary_toolMap = primary_toolMap.merge(git_toolMap)
             result[wiki_db] = primary_toolMap
         return WikiToolMap(result)
             
@@ -238,8 +241,7 @@ class WikiToolMap(object):
         return WikiToolMap(jsonobj)
 
     @staticmethod
-    def _load_from_resource(path):
-        s = resource_string(path)
+    def _load_from_resource(s):
         return pickle.loads(s)
 
     @staticmethod
@@ -282,7 +284,7 @@ class WikiToolMap(object):
         glob_str = "{0}/*.json".format(os.path.join(git_path, config_path))
 
         languages_files = set(glob.glob(glob_str))
-
+        
         # we want to make it easy to operate on a subset of sites
         if siteInfos is not None: 
             def extract_langcode(langfile):
@@ -297,6 +299,7 @@ class WikiToolMap(object):
 
         ## TODO: use global variants instead of this.
         def parse_file(f, timestamp):
+
             regex = re.compile(r".*/(.*)\.json")
             lang = regex.match(f).groups()[0]
 
@@ -318,6 +321,9 @@ class WikiToolMap(object):
         
             language_files = [f.replace(path+'/',"") for f in languages_files]
             repo = git.Repo(path)
+            # start at the head
+            repo.git.checkout('-f', "master")
+
             for commit in iterate_commits(repo, language_files):
                 print(commit.committed_datetime)
                 parent = commit.parents[0] if commit.parents else WikiToolMap.EMPTY_TREE_SHA
@@ -329,6 +335,7 @@ class WikiToolMap(object):
                 }
 
                 repo.git.checkout('-f', commit)
+
 
                 # probably want to check if the file is created or if it's missing for some other bad reason
                 for objpath, stats in commit.stats.files.items():
@@ -347,11 +354,6 @@ class WikiToolMap(object):
     def save(self):
         of = open(WikiToolMap.resource_path, 'wb')
         pickle.dump(self, of)
-
-    def match(self, editSummary):
-        toolMap = self.wikiToolMap[editSummary.wiki]
-        return toolMap.match(editSummary)
-
 
     def __getitem__(self, wiki_db):
         return self.wikiToolMap[wiki_db]
@@ -408,5 +410,6 @@ class WikiToolMapEncoder(json.JSONEncoder):
 
             
 if __name__ == "__main__":
-
-
+    wtm = WikiToolMap.load_WikiToolMap()
+    wtm.save()
+    

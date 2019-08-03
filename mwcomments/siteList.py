@@ -6,12 +6,12 @@ import json
 from collections import namedtuple
 
 # we want, dbname -> (url, lang)
-SiteListItem = namedtuple('SiteList',['dbname','url'])
+SiteListItem = namedtuple('SiteListItem',['dbname','url'])
 class SiteList():
     resource_path = 'resources/wikimedia_sites.pickle'
 
     def __init__(self):
-        if resource_exists(__name__, 'resources/wikimedia_sites.json'):
+        if resource_exists(__name__, SiteList.resource_path):
             wikimedia_sites = resource_string(__name__, SiteList.resource_path)
             self.wikimedia_sites = pickle.loads(wikimedia_sites)
 
@@ -24,7 +24,8 @@ class SiteList():
                           open("resources/wikimedia_sites.pickle",
                                'wb'))
 
-    def from_api(self):
+    @staticmethod
+    def from_api():
         api = get_api("https://en.wikipedia.org")
         site_matrix = api.get(action='sitematrix')['sitematrix']
 
@@ -36,6 +37,12 @@ class SiteList():
                 yield SiteListItem(dbname=site_data['dbname'],
                                    url=site_data['url'])
 
-            for site_data in site_matrix['specials']:
-                yield SiteListItem(dbname=site_data['dbname'],
-                                   url=site_data['url'])
+        for site_data in site_matrix['specials']:
+            yield SiteListItem(dbname=site_data['dbname'],
+                               url=site_data['url'])
+
+    def __iter__(self):
+        return iter(self.wikimedia_sites)
+
+    def __next__():
+        return next(wikimedia_sites)

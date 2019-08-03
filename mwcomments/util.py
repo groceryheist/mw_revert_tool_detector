@@ -1,8 +1,9 @@
 import os
 import re
 import dateutil.parser as date_parser
-
 fromisoformat = date_parser.isoparse
+from timedPattern import TimedPattern
+
 
 # we only support namespaces with these constants
 namespace_constants = {
@@ -67,10 +68,10 @@ def parse_localized_namespaces(filehandle):
         return namespace_dict
 
 
-def get_previous_time_from_index(index,time):
-    return index.bisect_right(time) - 1
+def get_previous_time_from_index(index, time):
+    return index.bisect_right(TimedPattern(time, None)) - 1
 
 
-def iterate_commits(repo, fileset, max_count=None):
+def iterate_commits(repo, fileset, max_count=-1):
     return repo.iter_commits('master', fileset, max_count=max_count)
 

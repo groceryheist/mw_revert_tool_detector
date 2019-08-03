@@ -47,8 +47,12 @@ def _apply_parser_functions(summary, siteInfo, dt):
         return ""
 
     def gender(new_args):
-        t, a, b, c = new_args
-        return r'(?:{0}|{1}|{2})'.format(a, b, c)
+        if len(new_args) == 4:
+            t, a, b, c = new_args
+            return r'(?:{0}|{1}|{2})'.format(a, b, c)
+        else:
+            print(new_args)
+            return r'(?:{0})'.format('|'.join(new_args[1:]))
 
     # special pages can probably be had from the siteinfo api too.
     # one problem might be that the siteinfo falls out of date.

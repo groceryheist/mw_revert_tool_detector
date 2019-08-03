@@ -1,12 +1,13 @@
-## rename to make it clear what's a regular expression and what's a comment
-## maybe make a new class for handling regular expressions
-## probably have the pattern index and the both timedPatterns be propertiers of the toolmap
-## do some abstraction site metadata: maybe use mwtypes.
-import wikitextToRegex
-from util import date_parser, fromisoformat
+# rename to make it clear what's a regular expression and what's a comment
+# maybe make a new class for handling regular expressions
+# probably have the pattern index and the both timedPatterns be propertiers of the toolmap
+# do some abstraction site metadata: maybe use mwtypes.
 from collections import namedtuple
 import datetime
 import re
+import wikitextToRegex
+import dateutil.parser as date_parser
+fromisoformat = date_parser.isoparse
 
 
 class TimedPattern(namedtuple('TimedPattern', ['time', 'pattern'])):

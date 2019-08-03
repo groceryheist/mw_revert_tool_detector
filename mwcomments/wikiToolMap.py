@@ -1,12 +1,12 @@
-## if I run into more problems with json, just cut it out and use pickle
+# if I run into more problems with json, just cut it out and use pickle
 
 from concurrent.futures import ThreadPoolExecutor
 from editSummary import EditSummary
 from siteList import SiteList
 from siteInfo import SiteInfo
-from functools import reduce, partial
+from functools import partial
 from itertools import chain
-from toolMap import ToolMap, ToolMapEncoder
+from toolMap import ToolMap
 from util import get_api, clone_if_not_available, iterate_commits
 from patternIndex import TimedPattern
 from sortedcontainers import SortedList
@@ -19,15 +19,15 @@ from collections import namedtuple, defaultdict
 from patternIndex import PatternIndex
 import pickle
 
-# Rename classes so relationship between wikiToolMap and toolMap is 
-# more obvious 
+# Rename classes so relationship between wikiToolMap and toolMap is
+# more obvious
 
 
 class WikiToolMap(object):
     __slots__ = ('wikiToolMap')
 
     EMPTY_TREE_SHA = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
-    resource_path = 'resources/wiki_patterns.pickle' 
+    resource_path = 'resources/wiki_patterns.pickle'
 
     def __init__(self, wikiToolMap):
         self.wikiToolMap = wikiToolMap
@@ -43,7 +43,7 @@ class WikiToolMap(object):
         date -- an iso-formatted string or a python datetime object
         identifying the timestamp of the edit.
         """
-        
+
         return self._match(EditSummary(date, comment, wiki_db))
 
     def _match(self, editSummary):
@@ -57,24 +57,30 @@ class WikiToolMap(object):
 
         toolMap = self.wikiToolMap[editSummary.wiki]
 
-        huggle_pattern = re.compile(r".*(:?(\(HG\)|\(\[\[.*\|HG\]\]\)|\(\[\[.*\|Huggle\]\]\))).*")
-        twinkle_pattern = re.compile(r".*(:?\(TW\)|\(\[\[.*\|TW\]\]\)\)|\(\[\[.*\|Twinkle\]\]\)\)).*")
+        huggle_pattern = re.compile(
+            r".*(:?(\(HG\)|\(\[\[.*\|HG\]\]\)|\(\[\[.*\|Huggle\]\]\))).*")
+        twinkle_pattern = re.compile(
+            r".*(:?\(TW\)|\(\[\[.*\|TW\]\]\)\)|\(\[\[.*\|Twinkle\]\]\)\)).*")
         stiki_pattern = re.compile(r".*(:?using\ \[\[WP:STiki\|STiki\]\]).*")
 
-        tool_patterns = zip(["huggle", "twinkle", "stiki"], [huggle_pattern, twinkle_pattern, stiki_pattern])
+        tool_patterns = zip(["huggle", "twinkle", "stiki"], [
+                            huggle_pattern, twinkle_pattern, stiki_pattern])
         tools = []
-        for name, pattern in tool_patterns: 
+        for name, pattern in tool_patterns:
             if pattern.match(editSummary.message):
                 tools.append(name)
-            
+
         tools.extend(toolMap.match(editSummary))
 
         return tools
 
     @staticmethod
-    def load_WikiToolMap(properties = [('undo-summary', 'undo'), ('revertpage', 'rollback')], _siteInfos = None):
+    def load_WikiToolMap(properties=[('undo-summary', 'undo'),
+                                     ('revertpage', 'rollback')],
+                         _siteInfos=None):
         if resource_exists(__name__, WikiToolMap.resource_path):
-            wiki_patterns_str = resource_string(__name__, WikiToolMap.resource_path)
+            wiki_patterns_str = resource_string(
+                __name__, WikiToolMap.resource_path)
             return WikiToolMap._load_from_resource(wiki_patterns_str)
 
         else:
@@ -97,24 +103,25 @@ class WikiToolMap(object):
             wtm = wtm.convert_to_regex(siteInfos)
 
             return wtm
-            
 
     # think about promoting SiteInfos to an object property
     @staticmethod
-    def from_all_sources(properties = [('undo-summary', 'undo'), ('revertpage', 'rollback')], siteInfos = None):
+    def from_all_sources(properties=[('undo-summary', 'undo'),
+                                     ('revertpage', 'rollback')],
+                         siteInfos=None):
         #    we could make this steaming potentially
-
 
         # ok so we have a problem:
         # github is organized by language, but the API is wiki-specific
         from_api = WikiToolMap._load_from_api(siteInfos)
 
-        from_mediawiki = WikiToolMap._load_from_mediawiki(properties, siteInfos)
- 
-        from_extensions = WikiToolMap._load_from_extensions(properties, siteInfos)
+        from_mediawiki = WikiToolMap._load_from_mediawiki(
+            properties, siteInfos)
+
+        from_extensions = WikiToolMap._load_from_extensions(
+            properties, siteInfos)
 
         from_git = from_mediawiki.merge(from_extensions)
-
 
         wtm = WikiToolMap._merge_api_git(from_api, from_git, siteInfos)
 
@@ -131,9 +138,9 @@ class WikiToolMap(object):
     def _load_rollback_from_api(siteInfos):
         it = WikiToolMap._load_prefix_from_api(siteInfos, "revertpage")
         return map(lambda t:
-                   (t.wiki_db, "rollback_nouser" if t.page_title.endswith("-nouser") else "rollback", t.timedPattern),
+                   (t.wiki_db, "rollback_nouser" if t.page_title.endswith(
+                       "-nouser") else "rollback", t.timedPattern),
                    it)
-
 
     def convert_to_regex(self, siteInfos):
         for wiki_db in siteInfos.keys():
@@ -144,7 +151,8 @@ class WikiToolMap(object):
     def _load_undo_from_api(siteInfos):
         it = WikiToolMap._load_prefix_from_api(siteInfos, "undo-summary")
         return map(lambda t:
-                   (t.wiki_db, "undo_nouser" if t.page_title.endswith("-nouser") else "undo", t.timedPattern),
+                   (t.wiki_db, "undo_nouser" if t.page_title.endswith(
+                       "-nouser") else "undo", t.timedPattern),
                    it)
 
     @staticmethod
@@ -153,13 +161,14 @@ class WikiToolMap(object):
             return chain(*
                          executor.map(
                              partial(WikiToolMap._scrape_api,
-                                     page_prefix = page_prefix),
+                                     page_prefix=page_prefix),
                              siteInfos.items()))
 
     @staticmethod
     def _scrape_api(siteInfo, page_prefix):
-        ApiTuple = namedtuple("ApiTuple",['wiki_db','page_title','timedPattern'])
-        from bs4 import BeautifulSoup as bs
+        ApiTuple = namedtuple(
+            "ApiTuple", ['wiki_db', 'page_title', 'timedPattern'])
+
         import mwapi
         wiki_db, siteInfo = siteInfo
         url = siteInfo.url
@@ -168,7 +177,8 @@ class WikiToolMap(object):
         api = get_api(url)
 
         try:
-            res = api.get(action="query", list="allpages", apprefix=page_prefix, aplimit="max", apnamespace=8)
+            res = api.get(action="query", list="allpages",
+                          apprefix=page_prefix, aplimit="max", apnamespace=8)
         except mwapi.errors.ConnectionError as e:
             print(e)
             return
@@ -186,21 +196,28 @@ class WikiToolMap(object):
         for page in allpages:
             print("found api settings for {0}".format(wiki_db))
             # then we get the text of that page
-            res2 = api.get(action="query",titles=[page['title']],prop="revisions",rvprop=['content','timestamp'], rvlimit='max')
+            res2 = api.get(action="query",
+                           titles=[page['title']],
+                           prop="revisions",
+                           rvprop=['content', 'timestamp'],
+                           rvlimit='max')
+
             res_page = res2['query']['pages'][str(page['pageid'])]
             for revision in res_page['revisions']:
                 wiki_text = revision['*']
                 timestamp = revision['timestamp']
-                timestamp = datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ")
-                timestamp = timestamp.replace(tzinfo = datetime.timezone.utc)
-                msg = [line for line in wiki_text.split('\n') if len(line) > 0][0]
+                timestamp = datetime.datetime.strptime(
+                    timestamp, "%Y-%m-%dT%H:%M:%SZ")
+                timestamp = timestamp.replace(tzinfo=datetime.timezone.utc)
+                msg = [line for line in wiki_text.split(
+                    '\n') if len(line) > 0][0]
 
-                timedPattern = TimedPattern(time=timestamp, pattern=msg.strip())
+                timedPattern = TimedPattern(
+                    time=timestamp, pattern=msg.strip())
 
                 yield ApiTuple(wiki_db=wiki_db,
                                page_title=page['title'],
                                timedPattern=timedPattern)
-
 
     @staticmethod
     def _merge_api_git(from_api, from_git, siteInfos):
@@ -210,7 +227,7 @@ class WikiToolMap(object):
             api_toolMap = from_api[wiki_db]
             git_toolMap = from_git[siteInfo.langcode]
             primary_toolMap = api_toolMap.merge(git_toolMap)
-            
+
             # we may need fallback langs in the past
             # merge will use right-hand patterns if
             # there are no left-hand patterns before the time period
@@ -222,10 +239,12 @@ class WikiToolMap(object):
                     primary_toolMap = primary_toolMap.merge(git_toolMap)
             result[wiki_db] = primary_toolMap
         return WikiToolMap(result)
-            
+
     # OLD COMMENT: need to make this slightly fancier to account for time
     def merge(self, other):
-        for key in set(chain(self.wikiToolMap.keys(), other.wikiToolMap.keys())):
+        for key in set(chain(self.wikiToolMap.keys(),
+                             other.wikiToolMap.keys())):
+
             self_toolMap = self.wikiToolMap[key]
             other_toolMap = other[key]
             merged_toolmap = self_toolMap.merge(other_toolMap)
@@ -233,11 +252,11 @@ class WikiToolMap(object):
 
         return self
 
-
     @staticmethod
     def _load_from_json(s):
         jsonobj = json.loads(s)
-        jsonobj.update({k:ToolMap.from_json_dict(v) for k,v in jsonobj.items()})
+        jsonobj.update({k: ToolMap.from_json_dict(v)
+                        for k, v in jsonobj.items()})
         return WikiToolMap(jsonobj)
 
     @staticmethod
@@ -246,20 +265,32 @@ class WikiToolMap(object):
 
     @staticmethod
     def _load_from_mediawiki(properties, siteInfos):
-        git_path = clone_if_not_available("https://github.com/wikimedia/mediawiki/")
+        git_path = clone_if_not_available(
+            "https://github.com/wikimedia/mediawiki/")
         config_path = "languages/i18n/"
-        return WikiToolMap._load_from_git(git_path, config_path, properties, siteInfos)
+        return WikiToolMap._load_from_git(git_path,
+                                          config_path,
+                                          properties,
+                                          siteInfos)
 
     @staticmethod
     def _load_from_extensions(properties, siteInfos):
-        git_path = clone_if_not_available("https://github.com/wikimedia/mediawiki-extensions-WikimediaMessages/")
-        config_path = "/i18n/wikimediaoverrides"
-        return WikiToolMap._load_from_git(git_path, config_path, properties, siteInfos)
+        git_path = clone_if_not_available(
+            "https://github.com/wikimedia/mediawiki-extensions-WikimediaMessages/")
 
-    @staticmethod    
+        config_path = "/i18n/wikimediaoverrides"
+        return WikiToolMap._load_from_git(git_path,
+                                          config_path,
+                                          properties,
+                                          siteInfos)
+
+    @staticmethod
     def _load_from_git(git_path, config_path, properties, siteInfos):
-        it = chain(* WikiToolMap._load_json(git_path, config_path, properties, siteInfos))
-        
+        it = chain(* WikiToolMap._load_json(git_path,
+                                            config_path,
+                                            properties,
+                                            siteInfos))
+
         wikiToolMap = WikiToolMap._agg_patterns(it)
         return WikiToolMap(wikiToolMap)
 
@@ -275,7 +306,7 @@ class WikiToolMap(object):
     @staticmethod
     def _load_json(git_path, config_path, properties, siteInfos):
         import glob
-        GitTuple = namedtuple("GitTuple",['lang','label','timedPattern'])
+        GitTuple = namedtuple("GitTuple", ['lang', 'label', 'timedPattern'])
         # config_path = 'languages/il18n'
         # git_path = 'temp/mediawiki'
 
@@ -284,9 +315,9 @@ class WikiToolMap(object):
         glob_str = "{0}/*.json".format(os.path.join(git_path, config_path))
 
         languages_files = set(glob.glob(glob_str))
-        
+
         # we want to make it easy to operate on a subset of sites
-        if siteInfos is not None: 
+        if siteInfos is not None:
             def extract_langcode(langfile):
                 regex = re.compile(r".*/(.*).json")
                 return regex.findall(langfile)[0]
@@ -297,7 +328,7 @@ class WikiToolMap(object):
                                languages_files
                                if extract_langcode(lf) in siteLangCodes}
 
-        ## TODO: use global variants instead of this.
+        # TODO: use global variants instead of this.
         def parse_file(f, timestamp):
 
             regex = re.compile(r".*/(.*)\.json")
@@ -306,20 +337,20 @@ class WikiToolMap(object):
             if not os.path.exists(f):
                 return
 
-            translations = json.load(open(f,'r'))
+            translations = json.load(open(f, 'r'))
             for prop, label in properties:
                 if prop in translations:
                     summary = translations[prop]
-                    timedPattern = TimedPattern(time=timestamp, pattern=summary)
-                    
+                    timedPattern = TimedPattern(
+                        time=timestamp, pattern=summary)
+
                     yield GitTuple(lang=lang,
                                    label=label,
                                    timedPattern=timedPattern)
 
-
         def find_diffs(path, languages_files):
-        
-            language_files = [f.replace(path+'/',"") for f in languages_files]
+
+            language_files = [f.replace(path+'/', "") for f in languages_files]
             repo = git.Repo(path)
             # start at the head
             repo.git.checkout('-f', "master")
@@ -327,15 +358,14 @@ class WikiToolMap(object):
             for commit in iterate_commits(repo, language_files):
                 print(commit.committed_datetime)
                 parent = commit.parents[0] if commit.parents else WikiToolMap.EMPTY_TREE_SHA
-                           
-                diffs  = {
-                    diff.a_path:diff for
+
+                diffs = {
+                    diff.a_path: diff for
                     diff in
                     commit.diff(parent)
                 }
 
                 repo.git.checkout('-f', commit)
-
 
                 # probably want to check if the file is created or if it's missing for some other bad reason
                 for objpath, stats in commit.stats.files.items():
@@ -349,7 +379,6 @@ class WikiToolMap(object):
                         yield list(parse_file(os.path.join(path, objpath), commit.committed_datetime))
 
         return find_diffs(git_path, languages_files)
-        
 
     def save(self):
         of = open(WikiToolMap.resource_path, 'wb')
@@ -360,6 +389,7 @@ class WikiToolMap(object):
 
     def __repr__(self):
         return self.wikiToolMap.__repr__()
+
 
 class WikiToolMapEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -378,12 +408,13 @@ class WikiToolMapEncoder(json.JSONEncoder):
             return obj._asdict()
 
         if isinstance(obj, TimedPattern):
-            import pdb; pdb.set_trace()
+            import pdb
+            pdb.set_trace()
             print("TimedPattern")
 
-            return {'time':obj.time,
-                    'pattern':obj.pattern}
-        
+            return {'time': obj.time,
+                    'pattern': obj.pattern}
+
         if isinstance(obj, re.Pattern):
             return obj.pattern
 
@@ -394,7 +425,7 @@ class WikiToolMapEncoder(json.JSONEncoder):
             res = list(obj)
             print("SortedList")
             print(res)
-            
+
             return list(obj)
 
         return json.JSONEncoder().default(obj)
@@ -408,8 +439,7 @@ class WikiToolMapEncoder(json.JSONEncoder):
         for chunk in gen:
             yield chunk
 
-            
+
 if __name__ == "__main__":
     wtm = WikiToolMap.load_WikiToolMap()
     wtm.save()
-    

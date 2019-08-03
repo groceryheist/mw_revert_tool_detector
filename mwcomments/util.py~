@@ -1,0 +1,20 @@
+import os
+
+def get_api(url):
+    import mwapi
+    # first we search for the page we're looking for
+    user_agent = "mw_revert_tool_detector, project by groceryheist (Nathan TeBlunthuis) <nathante@uw.edu>))"
+    api = mwapi.Session(url, user_agent=user_agent)
+    return api
+
+def clone_if_not_available(repo_url):
+    repo_name = repo_url.split('/')[-2]
+    dest_path = os.path.join("temp",repo_name)
+    if not os.path.exists(dest_path):
+        if not os.path.exists("temp"):
+            os.mkdir("temp")
+        os.chdir("temp")
+        subprocess.call(["git","clone",repo_url])
+        os.chdir("..")
+
+    return dest_path

@@ -2,11 +2,12 @@ import pickle
 import os
 from util import get_api
 from pkg_resources import resource_string, resource_exists
-import json
 from collections import namedtuple
 
 # we want, dbname -> (url, lang)
-SiteListItem = namedtuple('SiteListItem',['dbname','url'])
+SiteListItem = namedtuple('SiteListItem', ['dbname', 'url'])
+
+
 class SiteList():
     resource_path = 'resources/wikimedia_sites.pickle'
 
@@ -21,8 +22,8 @@ class SiteList():
         if os.path.exists("resources"):
             if not os.path.exists(SiteList.resource_path):
                 pickle.dump(self.wikimedia_sites,
-                          open("resources/wikimedia_sites.pickle",
-                               'wb'))
+                            open("resources/wikimedia_sites.pickle",
+                                 'wb'))
 
     @staticmethod
     def from_api():
@@ -45,4 +46,4 @@ class SiteList():
         return iter(self.wikimedia_sites)
 
     def __next__():
-        return next(wikimedia_sites)
+        return next(self.wikimedia_sites)

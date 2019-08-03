@@ -1,5 +1,6 @@
 import unittest
 from functools import partial
+from itertools import islice
 import util
 util.iterate_commits = partial(util.iterate_commits, max_count=2)
 from wikiToolMap import WikiToolMap, WikiToolMapEncoder
@@ -39,17 +40,3 @@ class TestFromAllSources(unittest.TestCase):
         test_siteInfos = {'enwiki':SiteInfo("https://en.wikipedia.org"),'aawiki':SiteInfo("https://aa.wikipedia.org")}
         wtm = WikiToolMap.load_WikiToolMap(_siteInfos=test_siteInfos)
         print(wtm)
-
-    def test_load_json(self):
-        git_path = clone_if_not_available("https://github.com/wikimedia/mediawiki/")
-        config_path = "languages/i18n/"
-        it = WikiToolMap.load_json(git_path, config_path, [('undo','undo-summary')])
-        test_set = islice(it,10)
-        it = chain(* test_set)
-
-        reduced = reduce(agg_patterns, it, {})
-
-        print(reduced)
-
-
-

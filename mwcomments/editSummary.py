@@ -1,5 +1,6 @@
 from util import fromisoformat
 
+
 class EditSummary(object):
     __slots__ = ['datetime', 'message', 'wiki']
 
@@ -13,4 +14,3 @@ class EditSummary(object):
     @staticmethod
     def from_dict(d):
         return EditSummary(**d)
- 

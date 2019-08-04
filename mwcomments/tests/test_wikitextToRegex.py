@@ -7,6 +7,7 @@ class TestFr(unittest.TestCase):
 
     def setUp(self):
         self.siteInfo = SiteInfo("https://fr.wikipedia.org")
+        self.maxDiff = None
 
     # test that we can convert {{ifexpr}}.. templates into reasonable regular expressions
     def test_ifexpr(self):
@@ -24,6 +25,15 @@ class TestFr(unittest.TestCase):
         goal_regex = re.compile('(?:.*(?:Spécial):RecentChanges.*)')
         self.assertEqual(result.pattern,goal_regex.pattern)
         
+    def test_ifexists(self):
+        test_str = 'Révocation des modifications de [[Spécial:Contributions/$2|$2]] (retour à la dernière version de {{#ifexist: Utilisateur:$1 | [[User:$1{{!}}$1]] | [[Spécial:Contributions/$1{{!}}$1]]}})'
+        
+        goal_str = r'(?:.*Révocation\ des\ modifications\ de\ \[\[Spécial:Contributions/(.*)\|(.*)\]\]\ \(retour\ à\ la\ dernière\ version\ de\ (?:\ \[\[User:(.*)\|(.*)\]\]\ |\ \[\[Spécial:Contributions/(.*)\|(.*)\]\])\).*)'
+
+        result = convert(test_str, self.siteInfo)
+
+        self.assertEqual(result.pattern, goal_str)
+
 
 class TestKK(unittest.TestCase):
 
@@ -66,3 +76,23 @@ class TestEn(unittest.TestCase):
         self.assertTrue(result.match("[[Special:Contribs/123|123]]"))
         self.assertFalse(result.match("[[User:123Special:Contribs/123|123"))
         
+
+class TestEnWiktionary(unittest.TestCase):
+    def setUp(self):
+        self.siteInfo = SiteInfo("https://en.wiktionary.org")
+        self.maxDiff = None
+
+    def test_fullurl(self):
+        test_str = "Reverted edits by [[Special:Contributions/$2|$2]] ([{{fullurl:Special:Log|type=block&page=User:$2}} Block log]); changed back to last version by [[User:$1|$1]]"
+
+        goal_str = r"(?:.*Reverted\ edits\ by\ \[\[Special:Contributions/(.*)\|(.*)\]\]\ \(\[(?:.*)\ Block\ log\]\);\ changed\ back\ to\ last\ version\ by\ \[\[User:(.*)\|(.*)\]\].*)"
+
+        result = convert(test_str, self.siteInfo)
+        self.assertEqual(result.pattern, goal_str)
+
+    def test_urlencode(self):
+        test_str = "([{{fullurl:Special:Log|type=block&page=User:{{urlencode:$2}}}} Block log])"
+        goal_str = r"(?:.*\(\[(?:.*)\ Block\ log\]\).*)"
+        
+        result = convert(test_str, self.siteInfo)
+        self.assertEqual(result.pattern, goal_str)

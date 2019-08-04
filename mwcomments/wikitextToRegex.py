@@ -2,7 +2,6 @@ import re
 from itertools import product
 import datetime
 
-
 def convert(summary, siteInfo, dt=None):
 
     if dt is None:
@@ -12,6 +11,8 @@ def convert(summary, siteInfo, dt=None):
     gender_replace = re.compile(
         re.escape("\{\{") + "GENDER.*" + re.escape("\}\}"))
 
+    bangtemplate_replace = re.compile(re.escape("\{\{!\}\}"))
+    
     if summary[-1] == '.':
         summary = summary[0:-1]
 
@@ -19,11 +20,16 @@ def convert(summary, siteInfo, dt=None):
 
     summary = dollar_replace.sub('(.*)', summary)
     summary = gender_replace.sub("(.*)", summary)
+    summary = bangtemplate_replace.sub(re.escape("|"), summary)
+
+    if '{' in summary:
+        print(summary)
 
     # remove final periods
     return re.compile(r"(?:.*{0}.*)".format(summary))
 
 
+## need to add:fullurl, urlencode, and #ifexists
 def _apply_parser_functions(summary, siteInfo, dt):
     import wikitextparser as wtp
 
@@ -37,6 +43,7 @@ def _apply_parser_functions(summary, siteInfo, dt):
             return evaled_func
         else:
             print("unknown parser function:{0}".format(pf.name))
+            
             return re.escape(pf.string.strip())
 
     def ifexpr(new_args):
@@ -72,6 +79,15 @@ def _apply_parser_functions(summary, siteInfo, dt):
 
         return r'(?:{0})'.format('|'.join(possible_values))
 
+
+    # this is a rare case found in https://en.wiktionary.org/w/index.php?title=MediaWiki:Revertpage&action=edit&oldid=1210839
+    def fullurl(new_args):
+        return r"(?:.*)"
+
+    # this is another rare case found in https://en.wiktionary.org/w/index.php?title=MediaWiki:Revertpage&action=edit&oldid=1210851
+    def urlencode(new_args):
+        return r"(?:.*)"
+        
     # TODO we need to handle localiztion templates using the api by passing in the url and the date.
     # NS can be got from the siteinfo api
     # we'll need to look up the namespace from git.
@@ -86,11 +102,17 @@ def _apply_parser_functions(summary, siteInfo, dt):
         return regex
 
     wikitemplate_patterns = {"#ifexpr": ifexpr, "#invoke": invoke,
-                             "ns": ns, 'gender': gender, "#special": special}
+                             "ns": ns, 'gender': gender,
+                             "#special": special,
+                             "#ifexist":ifexpr,
+                             "fullurl":fullurl,
+                             "fullurle":fullurl,
+                             "urlencode":urlencode}
 
     parsed = wtp.parse(summary)
 
     parser_functions = parsed.parser_functions
+    
 
     # parser functions can be nested so let's evaluate them from shortest to longest.
 

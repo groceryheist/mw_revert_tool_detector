@@ -23,7 +23,9 @@ class TimedPattern(namedtuple('TimedPattern', ['time', 'pattern'])):
         return TimedPattern(time, pattern)
 
     def convert_to_regex(self, siteInfo):
-        pattern = wikitextToRegex.convert(self.pattern, siteInfo)
+        pattern = wikitextToRegex.convert(self.pattern,
+                                          siteInfo,
+                                          self.time)
         return TimedPattern(self.time, pattern)
 
     @staticmethod

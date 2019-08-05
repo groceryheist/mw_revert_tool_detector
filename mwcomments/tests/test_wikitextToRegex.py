@@ -96,3 +96,9 @@ class TestEnWiktionary(unittest.TestCase):
         
         result = convert(test_str, self.siteInfo)
         self.assertEqual(result.pattern, goal_str)
+
+    def test_contribslink(self):
+        test_str = "{{MediaWiki:Contribslink}}"
+        result = convert(test_str, self.siteInfo)
+        goal_str = r"(?:.*(.*).*)"
+        self.assertEqual(result.pattern, goal_str)

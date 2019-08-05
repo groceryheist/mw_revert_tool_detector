@@ -22,6 +22,14 @@ def convert(summary, siteInfo, dt=None):
     summary = gender_replace.sub("(.*)", summary)
     summary = bangtemplate_replace.sub(re.escape("|"), summary)
 
+    # for now we won't handle the following messages
+
+    # we can potentially handle by looking up messages from the API
+    # this is more conservative since how it will evaluate depends on the user's interface langauge.
+    message_contribs_replace = re.compile(
+        re.escape('\{\{MediaWiki:Contribslink\}\}'))
+    summary = message_contribs_replace.sub('(.*)', summary)
+    
     if '{' in summary:
         print(summary)
 

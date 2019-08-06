@@ -29,6 +29,11 @@ def convert(summary, siteInfo, dt=None):
     message_contribs_replace = re.compile(
         re.escape('\{\{MediaWiki:Contribslink\}\}'))
     summary = message_contribs_replace.sub('(.*)', summary)
+
+    # I think we can safely replace remaining templates with dotstarts
+
+    template_regex = re.compile('\{\{.*\}\}')
+    summary = template_regex.sub("(.*)", summary)
     
     if '{' in summary:
         print(summary)

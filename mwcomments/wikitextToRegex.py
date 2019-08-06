@@ -32,7 +32,7 @@ def convert(summary, siteInfo, dt=None):
 
     # I think we can safely replace remaining templates with dotstarts
 
-    template_regex = re.compile('\{\{.*\}\}')
+    template_regex = re.compile(re.escape('\{\{.*\}\}'))
     summary = template_regex.sub("(.*)", summary)
     
     if '{' in summary:

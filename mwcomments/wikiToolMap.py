@@ -2,7 +2,7 @@
 
 from concurrent.futures import ThreadPoolExecutor
 from editSummary import EditSummary
-from siteList import SiteList
+from siteList import SiteList, SiteListItem
 from siteInfo import SiteInfo
 from functools import partial
 from itertools import chain
@@ -11,7 +11,7 @@ from util import get_api, clone_if_not_available, iterate_commits
 from patternIndex import TimedPattern
 from sortedcontainers import SortedList
 import re
-from pkg_resources import resource_exists, resource_string
+from pkg_resources import resource_exists, resource_stream
 import json
 import os
 import datetime
@@ -22,6 +22,11 @@ import pickle
 # Rename classes so relationship between wikiToolMap and toolMap is
 # more obvious
 
+class MyUnpickler(pickle.Unpickler):
+    def find_class(self, module, name):
+        if module == "__main__":
+            module = "mwcomments"
+        return super().find_class(module, name)
 
 class WikiToolMap(object):
     __slots__ = ('wikiToolMap')
@@ -78,24 +83,22 @@ class WikiToolMap(object):
     def load_WikiToolMap(properties=[('undo-summary', 'undo'),
                                      ('revertpage', 'rollback')],
                          _siteInfos=None):
-        if resource_exists(__name__, WikiToolMap.resource_path):
-            wiki_patterns_str = resource_string(
-                __name__, WikiToolMap.resource_path)
-            return WikiToolMap._load_from_resource(wiki_patterns_str)
+        if _siteInfos is None:
+            if resource_exists(__name__, WikiToolMap.resource_path):
+                wiki_patterns_str = resource_stream(
+                    __name__, WikiToolMap.resource_path)
+                return WikiToolMap._load_from_resource(wiki_patterns_str)
+
+            print("looking up siteinfos from the api")
+            wikimedia_sites = SiteList()
+            siteInfos = {}
+            for site in wikimedia_sites:
+                si = SiteInfo(site.url)
+                if si.have_info:
+                    siteInfos[site] = si
 
         else:
-            if _siteInfos is None:
-                print("looking up siteinfos from the api")
-                wikimedia_sites = SiteList()
-
-                siteInfos = {}
-                for site in wikimedia_sites:
-                    si = SiteInfo(site.url)
-                    if si.have_info:
-                        siteInfos[site] = si
-
-            else:
-                siteInfos = _siteInfos
+            siteInfos = _siteInfos
 
             print("loading toolmaps from all sources")
             wtm = WikiToolMap.from_all_sources(properties, siteInfos)
@@ -259,9 +262,6 @@ class WikiToolMap(object):
                         for k, v in jsonobj.items()})
         return WikiToolMap(jsonobj)
 
-    @staticmethod
-    def _load_from_resource(s):
-        return pickle.loads(s)
 
     @staticmethod
     def _load_from_mediawiki(properties, siteInfos):
@@ -389,6 +389,19 @@ class WikiToolMap(object):
 
     def __repr__(self):
         return self.wikiToolMap.__repr__()
+
+    @staticmethod
+    def _load_from_resource(s):
+        import git
+        git.objects.util.tzoffset = partial(git.objects.util.tzoffset, secs_west_of_utc=0)
+
+        loaded = MyUnpickler(s).load()
+
+        if isinstance(list(loaded.wikiToolMap.keys())[0],SiteListItem):
+            loaded.wikiToolMap = {k.dbname:v for k,v in loaded.wikiToolMap.items()}
+
+        return loaded
+#    return pickle.load(open('resources/wiki_patterns.pickle','rb'))
 
 
 class WikiToolMapEncoder(json.JSONEncoder):

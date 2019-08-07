@@ -7,7 +7,6 @@ from wikiToolMap import WikiToolMap, WikiToolMapEncoder
 from siteInfo import SiteInfo
 import json
 
-
 class TestFromAllSources(unittest.TestCase):
 
     def test_ltwiki(self):
@@ -40,3 +39,15 @@ class TestFromAllSources(unittest.TestCase):
         test_siteInfos = {'enwiki':SiteInfo("https://en.wikipedia.org"),'aawiki':SiteInfo("https://aa.wikipedia.org")}
         wtm = WikiToolMap.load_WikiToolMap(_siteInfos=test_siteInfos)
         print(wtm)
+
+class TestLoadAndMatch(unittest.TestCase):
+
+    def setUp(self):
+        self.wtm = WikiToolMap.load_WikiToolMap()
+
+    def test_enwiki(self):
+        test_str = "Reverted edits by [[Special:Contribs/name|name]] ([[User talk:name|talk]]) to last version by [[User:name2|name]]"
+        test_date = "2019-06-25T12:13:14+00:00"
+        test_wiki='enwiki'
+        match = self.wtm.match(test_str, test_wiki, test_date)
+        self.assertSetEqual(set(match),{'rollback'})

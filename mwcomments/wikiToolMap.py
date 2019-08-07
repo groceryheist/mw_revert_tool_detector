@@ -7,7 +7,7 @@ from .siteInfo import SiteInfo
 from functools import partial
 from itertools import chain
 from .toolMap import ToolMap
-from .util import get_api, clone_if_not_available, iterate_commits
+from .util import get_api, clone_if_not_available
 from .patternIndex import TimedPattern, PatternIndex
 from sortedcontainers import SortedList
 import re
@@ -304,6 +304,7 @@ class WikiToolMap(object):
     # warning! this is super not thread-safe
     @staticmethod
     def _load_json(git_path, config_path, properties, siteInfos):
+        from .util import iterate_commits
         import glob
         GitTuple = namedtuple("GitTuple", ['lang', 'label', 'timedPattern'])
         # config_path = 'languages/il18n'
@@ -450,8 +451,3 @@ class WikiToolMapEncoder(json.JSONEncoder):
             gen = json.JSONEncoder._iterencode(self, obj, markers)
         for chunk in gen:
             yield chunk
-
-
-if __name__ == "__main__":
-    wtm = WikiToolMap.load_WikiToolMap()
-    wtm.save()

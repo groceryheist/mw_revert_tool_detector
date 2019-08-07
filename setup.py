@@ -1,6 +1,6 @@
 from setuptools import setup
 setup(name="mwcomments",
-      version="0.1.1",
+      version="0.1.2",
       description="Utilities for interpreting comments in edits to mediawiki wikis",
       license="GPL3",
       packages=['mwcomments'],
@@ -9,5 +9,5 @@ setup(name="mwcomments",
       author_email="nathante@uw.edu",
       keywords=['mediawiki'],
       url='https://github.com/groceryheist/mw_revert_tool_detector',
-      install_requires=['mwapi','beautifulsoup4','lxml','gitpython',"python-dateutil",'wikitextparser','sortedcontainers', 'python-dateutil']
+      install_requires=['mwapi','lxml','gitpython',"python-dateutil>=2.7.3",'wikitextparser','sortedcontainers', 'python-dateutil']
 )

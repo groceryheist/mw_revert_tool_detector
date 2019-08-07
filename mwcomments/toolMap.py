@@ -1,7 +1,7 @@
-from patternIndex import PatternIndex, PatternIndexEncoder
+from .patternIndex import PatternIndex, PatternIndexEncoder
 from collections import defaultdict
 from itertools import chain
-from siteInfo import SiteInfo, SiteInfoEncoder
+from .siteInfo import SiteInfo, SiteInfoEncoder
 from json import JSONEncoder
 
 

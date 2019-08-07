@@ -1,10 +1,10 @@
 from sortedcontainers import SortedList
 from collections import namedtuple
-from util import fromisoformat, get_previous_time_from_index
+from .util import fromisoformat, get_previous_time_from_index
 import re
 from json import JSONEncoder
 from datetime import datetime
-from timedPattern import TimedPattern
+from .timedPattern import TimedPattern
 from functools import partial
 
 def _dottime(timedPattern):

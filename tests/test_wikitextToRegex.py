@@ -1,6 +1,6 @@
 import unittest
-from wikitextToRegex import *
-from siteInfo import * 
+from mwcomments.wikitextToRegex import *
+from mwcomments.siteInfo import * 
 import re
 
 class TestFr(unittest.TestCase):

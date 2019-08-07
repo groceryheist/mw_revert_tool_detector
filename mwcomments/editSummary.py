@@ -1,4 +1,4 @@
-from util import fromisoformat
+from .util import fromisoformat
 
 
 class EditSummary(object):

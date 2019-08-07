@@ -1,9 +1,9 @@
-from timedPattern import TimedPattern
+from .timedPattern import TimedPattern
 import os
 import re
+import subprocess
 import dateutil.parser as date_parser
 fromisoformat = date_parser.isoparse
-
 
 # we only support namespaces with these constants
 namespace_constants = {
@@ -43,7 +43,7 @@ def clone_if_not_available(repo_url):
         if not os.path.exists("temp"):
             os.mkdir("temp")
         os.chdir("temp")
-        os.subprocess.call(["git", "clone", repo_url])
+        subprocess.call(["git", "clone", repo_url])
         os.chdir("..")
 
     return dest_path

@@ -1,7 +1,7 @@
 import os
 from json import JSONEncoder
 from itertools import chain
-from util import get_api
+from .util import get_api
 
 
 class SiteInfoEncoder(JSONEncoder):
@@ -151,7 +151,7 @@ class SiteInfo(object):
 
     def _extractLocalizedNamespaces(self, date):
         import git
-        from util import parse_localized_namespaces
+        from .util import parse_localized_namespaces
 
         repo_path = "temp/mediawiki"
         repo = git.Repo(repo_path)

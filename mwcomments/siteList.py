@@ -1,6 +1,6 @@
 import pickle
 import os
-from util import get_api
+from .util import get_api
 from pkg_resources import resource_string, resource_exists
 from collections import namedtuple
 

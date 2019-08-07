@@ -5,10 +5,9 @@
 from collections import namedtuple
 import datetime
 import re
-import wikitextToRegex
 import dateutil.parser as date_parser
 fromisoformat = date_parser.isoparse
-
+from .wikitextToRegex import convert
 
 class TimedPattern(namedtuple('TimedPattern', ['time', 'pattern'])):
 
@@ -18,14 +17,14 @@ class TimedPattern(namedtuple('TimedPattern', ['time', 'pattern'])):
             time = fromisoformat(time)
 
         if not isinstance(pattern, re.Pattern):
-            pattern = wikitextToRegex.convert(pattern, siteInfo)
+            pattern = convert(pattern, siteInfo)
 
         return TimedPattern(time, pattern)
 
     def convert_to_regex(self, siteInfo):
-        pattern = wikitextToRegex.convert(self.pattern,
-                                          siteInfo,
-                                          self.time)
+        pattern = convert(self.pattern,
+                          siteInfo,
+                          self.time)
         return TimedPattern(self.time, pattern)
 
     @staticmethod

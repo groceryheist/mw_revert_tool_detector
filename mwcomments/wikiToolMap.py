@@ -1,14 +1,14 @@
 # if I run into more problems with json, just cut it out and use pickle
 
 from concurrent.futures import ThreadPoolExecutor
-from editSummary import EditSummary
-from siteList import SiteList, SiteListItem
-from siteInfo import SiteInfo
+from .editSummary import EditSummary
+from .siteList import SiteList, SiteListItem
+from .siteInfo import SiteInfo
 from functools import partial
 from itertools import chain
-from toolMap import ToolMap
-from util import get_api, clone_if_not_available, iterate_commits
-from patternIndex import TimedPattern
+from .toolMap import ToolMap
+from .util import get_api, clone_if_not_available, iterate_commits
+from .patternIndex import TimedPattern, PatternIndex
 from sortedcontainers import SortedList
 import re
 from pkg_resources import resource_exists, resource_stream
@@ -16,7 +16,6 @@ import json
 import os
 import datetime
 from collections import namedtuple, defaultdict
-from patternIndex import PatternIndex
 import pickle
 
 # Rename classes so relationship between wikiToolMap and toolMap is

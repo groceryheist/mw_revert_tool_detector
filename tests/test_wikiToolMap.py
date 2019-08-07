@@ -1,10 +1,11 @@
 import unittest
 from functools import partial
 from itertools import islice
-import util
-util.iterate_commits = partial(util.iterate_commits, max_count=2)
-from wikiToolMap import WikiToolMap, WikiToolMapEncoder
-from siteInfo import SiteInfo
+import mwcomments.util 
+mwcomments.util.iterate_commits = partial(mwcomments.util.iterate_commits, max_count=2)
+import mwcomments.util as util
+from mwcomments.wikiToolMap import WikiToolMap, WikiToolMapEncoder
+from mwcomments.siteInfo import SiteInfo
 import json
 
 class TestFromAllSources(unittest.TestCase):

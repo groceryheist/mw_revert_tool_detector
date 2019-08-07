@@ -1,6 +1,6 @@
 import unittest
 import os
-from util import parse_localized_namespaces
+from mwcomments.util import parse_localized_namespaces
 
 class TestPhpFuncs(unittest.TestCase):
 

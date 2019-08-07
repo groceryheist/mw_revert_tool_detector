@@ -99,12 +99,12 @@ class WikiToolMap(object):
         else:
             siteInfos = _siteInfos
 
-            print("loading toolmaps from all sources")
-            wtm = WikiToolMap.from_all_sources(properties, siteInfos)
+        print("loading toolmaps from all sources")
+        wtm = WikiToolMap.from_all_sources(properties, siteInfos)
 
-            wtm = wtm.convert_to_regex(siteInfos)
+        wtm = wtm.convert_to_regex(siteInfos)
 
-            return wtm
+        return wtm
 
     # think about promoting SiteInfos to an object property
     @staticmethod

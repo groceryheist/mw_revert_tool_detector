@@ -27,10 +27,13 @@ class TimedPattern(namedtuple('TimedPattern', ['time', 'pattern'])):
                           self.time)
         return TimedPattern(self.time, pattern)
 
+    def as_dict(self):
+        return {'time': self.time, 'pattern':self.pattern}
+
     @staticmethod
-    def from_json_dict(jsonobj):
-        time = date_parser.parse(jsonobj['time'])
-        pattern = jsonobj.compile(jsonobj['pattern'])
+    def from_dict(obj):
+        time = obj['time']
+        pattern = obj['pattern']
         return TimedPattern(time=time, pattern=pattern)
 
     def match(self, editSummary):

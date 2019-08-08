@@ -3,14 +3,12 @@ from json import JSONEncoder
 from itertools import chain
 from .util import get_api
 
-
 class SiteInfoEncoder(JSONEncoder):
     def default(self, obj):
         if isinstance(obj, SiteInfo):
             return obj.to_dict()
         else:
             return JSONEncoder.default(obj)
-
 
 class SiteInfo(object):
     __slots__ = ['SiteInfo', 'url', 'langcode', '_msgs_php_files',

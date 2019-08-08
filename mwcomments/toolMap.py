@@ -32,14 +32,24 @@ class ToolMap(object):
 
     @staticmethod
     def from_dict(toolMap):
-        obj = ToolMap()
-        if not isinstance(toolMap, defaultdict(PatternIndex)):
-            obj._toolMap.update(toolMap)
 
-        else:
+        v = next(iter(toolMap.values()))
+
+
+        if isinstance(v, PatternIndex):
+            obj = ToolMap()
+            if not isinstance(toolMap, defaultdict):
+                obj._toolMap.update(toolMap)
             obj._toolMap = toolMap
+            return obj
+        else:
+            d = {k:PatternIndex.from_save(v) for k, v in toolMap
+.items()}
+            return ToolMap.from_dict(d)
 
-        return obj
+
+    def as_dict(self):
+        return {k:self._toolMap[k].to_save() for k in self._toolMap.keys()}
 
     # we need to make sure that the patterns are sorted before we convert them
     def add(self, prop, time=None, pattern=None, timedPattern=None):

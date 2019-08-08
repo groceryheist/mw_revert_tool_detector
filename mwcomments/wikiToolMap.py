@@ -1,5 +1,4 @@
 # if I run into more problems with json, just cut it out and use pickle
-
 import git
 from concurrent.futures import ThreadPoolExecutor
 from .editSummary import EditSummary
@@ -12,7 +11,7 @@ from .util import get_api, clone_if_not_available
 from .patternIndex import TimedPattern, PatternIndex
 from sortedcontainers import SortedList
 import re
-from pkg_resources import resource_exists, resource_stream
+from pkg_resources import resource_exists, resource_string
 import json
 import os
 import datetime
@@ -21,12 +20,6 @@ import pickle
 
 # Rename classes so relationship between wikiToolMap and toolMap is
 # more obvious
-
-class MyUnpickler(pickle.Unpickler):
-    def find_class(self, module, name):
-        if module == "__main__":
-            module = "mwcomments"
-        return super().find_class(module, name)
 
 class WikiToolMap(object):
     __slots__ = ('wikiToolMap')
@@ -85,7 +78,7 @@ class WikiToolMap(object):
                          _siteInfos=None):
         if _siteInfos is None:
             if resource_exists(__name__, WikiToolMap.resource_path):
-                wiki_patterns_str = resource_stream(
+                wiki_patterns_str = resource_string(
                     __name__, WikiToolMap.resource_path)
                 return WikiToolMap._load_from_resource(wiki_patterns_str)
 
@@ -224,6 +217,7 @@ class WikiToolMap(object):
 
     @staticmethod
     def _merge_api_git(from_api, from_git, siteInfos):
+
         result = {}
         for wiki_db in siteInfos.keys():
             siteInfo = siteInfos[wiki_db]
@@ -381,7 +375,8 @@ class WikiToolMap(object):
 
     def save(self):
         of = open(WikiToolMap.resource_path, 'wb')
-        pickle.dump(self, of)
+        out_obj = {k:v.as_dict() for k, v in self.wikiToolMap.items()}
+        pickle.dump(out_obj, of)
 
     def __getitem__(self, wiki_db):
         return self.wikiToolMap[wiki_db]
@@ -391,9 +386,12 @@ class WikiToolMap(object):
 
     @staticmethod
     def _load_from_resource(s):
-        loaded = MyUnpickler(s).load()
+        in_d = pickle.loads(s)
 
-        if isinstance(list(loaded.wikiToolMap.keys())[0],SiteListItem):
+        loaded = {k:ToolMap.from_dict(v) for k, v in in_d.items()}
+        loaded = WikiToolMap(loaded)
+        
+        if isinstance(list(loaded.wikiToolMap.keys())[0], SiteListItem):
             loaded.wikiToolMap = {k.dbname:v for k,v in loaded.wikiToolMap.items()}
 
         return loaded

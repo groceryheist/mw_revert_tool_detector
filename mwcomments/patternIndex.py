@@ -42,8 +42,8 @@ class PatternIndex(object):
         obj.add(time=time, pattern=pattern)
         return obj
 
+    @staticmethod
     def from_timed_patterns(timedPatterns, ready=False):
-
         obj = PatternIndex()
 
         if isinstance(timedPatterns, TimedPattern):
@@ -54,6 +54,16 @@ class PatternIndex(object):
         obj.ready = ready
         return obj
         
+
+    def to_save(self):
+        return [item.as_dict() for item in self.index]
+
+    @staticmethod
+    def from_save(saveobj):
+        obj = PatternIndex.from_timed_patterns([TimedPattern.from_dict(e) for e in saveobj])
+        obj.ready = True
+        return obj
+
     @staticmethod
     def from_json_dict(jsondict):
         patterns = map(TimedPattern.from_json_dict, jsondict)

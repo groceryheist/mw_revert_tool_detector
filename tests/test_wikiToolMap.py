@@ -1,3 +1,4 @@
+import os
 import unittest
 from functools import partial
 from itertools import islice
@@ -18,6 +19,20 @@ class TestFromAllSources(unittest.TestCase):
         test_date = "2006-12-07T12:13:06+00:00"
         test_wiki='ltwiki'
         self.assertSetEqual(set(result.match(test_comment, test_wiki, test_date)), {'undo','twinkle'})
+
+        # test that we can save and load
+        og_resource_path = WikiToolMap.resource_path
+
+        WikiToolMap.resource_path = "test_resource.pickle"
+        result.save()
+        
+        loaded = WikiToolMap._load_from_resource(open(WikiToolMap.resource_path,'rb').read())
+        self.assertSetEqual(set(result.wikiToolMap.keys()), set(loaded.wikiToolMap.keys()))
+        self.assertSetEqual(set(loaded.match(test_comment, test_wiki, test_date)), {'undo','twinkle'})
+
+        os.remove(WikiToolMap.resource_path)
+        WikiToolMap.resource_path = og_resource_path
+
 
     def test_kkwiki(self):
         test_siteInfos = {'kkwiki':SiteInfo("https://kk.wikipedia.org"),'enwiki':SiteInfo("https://en.wikipedia.org")}

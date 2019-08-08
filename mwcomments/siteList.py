@@ -7,7 +7,6 @@ from collections import namedtuple
 # we want, dbname -> (url, lang)
 SiteListItem = namedtuple('SiteListItem', ['dbname', 'url'])
 
-
 class SiteList():
     resource_path = 'resources/wikimedia_sites.pickle'
 

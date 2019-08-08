@@ -88,7 +88,7 @@ class WikiToolMap(object):
             for site in wikimedia_sites:
                 si = SiteInfo(site.url)
                 if si.have_info:
-                    siteInfos[site] = si
+                    siteInfos[site.dbname] = si
 
         else:
             siteInfos = _siteInfos

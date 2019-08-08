@@ -1,5 +1,6 @@
 # if I run into more problems with json, just cut it out and use pickle
 
+import git
 from concurrent.futures import ThreadPoolExecutor
 from .editSummary import EditSummary
 from .siteList import SiteList, SiteListItem
@@ -309,8 +310,6 @@ class WikiToolMap(object):
         GitTuple = namedtuple("GitTuple", ['lang', 'label', 'timedPattern'])
         # config_path = 'languages/il18n'
         # git_path = 'temp/mediawiki'
-
-        import git
         # first find the language files
         glob_str = "{0}/*.json".format(os.path.join(git_path, config_path))
 
@@ -392,9 +391,6 @@ class WikiToolMap(object):
 
     @staticmethod
     def _load_from_resource(s):
-        import git
-        git.objects.util.tzoffset = partial(git.objects.util.tzoffset, secs_west_of_utc=0)
-
         loaded = MyUnpickler(s).load()
 
         if isinstance(list(loaded.wikiToolMap.keys())[0],SiteListItem):

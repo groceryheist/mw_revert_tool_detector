@@ -7,7 +7,7 @@ from .siteInfo import SiteInfo
 from functools import partial
 from itertools import chain
 from .toolMap import ToolMap
-from .util import get_api, clone_if_not_available
+from .util import get_api, clone_if_not_available, fromisoformat
 from .patternIndex import TimedPattern, PatternIndex
 from sortedcontainers import SortedList
 import re
@@ -334,8 +334,11 @@ class WikiToolMap(object):
             for prop, label in properties:
                 if prop in translations:
                     summary = translations[prop]
+                    # the timestamps from git have special offset that we want to strip
+                    
+                    timestamp2 = fromisoformat(timestamp.isoformat())
                     timedPattern = TimedPattern(
-                        time=timestamp, pattern=summary)
+                        time=timestamp2, pattern=summary)
 
                     yield GitTuple(lang=lang,
                                    label=label,

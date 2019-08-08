@@ -1,5 +1,4 @@
 # if I run into more problems with json, just cut it out and use pickle
-import git
 from concurrent.futures import ThreadPoolExecutor
 from .editSummary import EditSummary
 from .siteList import SiteList, SiteListItem
@@ -299,6 +298,7 @@ class WikiToolMap(object):
     # warning! this is super not thread-safe
     @staticmethod
     def _load_json(git_path, config_path, properties, siteInfos):
+        import git
         from .util import iterate_commits
         import glob
         GitTuple = namedtuple("GitTuple", ['lang', 'label', 'timedPattern'])

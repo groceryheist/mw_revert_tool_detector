@@ -123,6 +123,9 @@ class PatternIndex(object):
         if not self.ready:
             self.convert_to_regex()
 
+        if len(self.index) == 0:
+            return []
+
         previous_time = get_previous_time_from_index(self.index, editSummary.datetime)
         pattern = self.index[previous_time]
         return pattern.match(editSummary)

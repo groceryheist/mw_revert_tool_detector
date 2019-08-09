@@ -67,3 +67,11 @@ class TestLoadAndMatch(unittest.TestCase):
         test_wiki='enwiki'
         match = self.wtm.match(test_str, test_wiki, test_date)
         self.assertSetEqual(set(match),{'rollback'})
+
+
+    def test_idwiki(self):
+        test_str = "comment"
+        test_date = "2019-06-25T12:13:14+00:00"
+        test_wiki = 'idwiki'
+        match = self.wtm.match(test_str, test_wiki, test_date)
+        self.assertSetEqual(set(match),set())

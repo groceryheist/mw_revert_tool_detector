@@ -5,23 +5,14 @@
 from collections import namedtuple
 import datetime
 import re
-import dateutil.parser as date_parser
-fromisoformat = date_parser.isoparse
-from .wikitextToRegex import convert
 
 class TimedPattern(namedtuple('TimedPattern', ['time', 'pattern'])):
 
-    @staticmethod
-    def from_raw_elements(time, pattern, siteInfo):
-        if not isinstance(time, datetime.datetime):
-            time = fromisoformat(time)
-
-        if not isinstance(pattern, re.Pattern):
-            pattern = convert(pattern, siteInfo)
-
-        return TimedPattern(time, pattern)
+    def match(self, editSummary):
+        return self.pattern.match(editSummary.message)
 
     def convert_to_regex(self, siteInfo):
+        from .wikitextToRegex import convert
         pattern = convert(self.pattern,
                           siteInfo,
                           self.time)
@@ -36,5 +27,15 @@ class TimedPattern(namedtuple('TimedPattern', ['time', 'pattern'])):
         pattern = obj['pattern']
         return TimedPattern(time=time, pattern=pattern)
 
-    def match(self, editSummary):
-        return self.pattern.match(editSummary.message)
+    @staticmethod
+    def from_raw_elements(time, pattern, siteInfo):
+        import dateutil.parser as date_parser
+        fromisoformat = date_parser.isoparse
+
+        if not isinstance(time, datetime.datetime):
+            time = fromisoformat(time)
+
+        if not isinstance(pattern, re.Pattern):
+            pattern = convert(pattern, siteInfo)
+
+        return TimedPattern(time, pattern)

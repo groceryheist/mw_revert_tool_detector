@@ -2,11 +2,16 @@
 # maybe make a new class for handling regular expressions
 # probably have the pattern index and the both timedPatterns be propertiers of the toolmap
 # do some abstraction site metadata: maybe use mwtypes.
-from collections import namedtuple
 import datetime
 import re
 
-class TimedPattern(namedtuple('TimedPattern', ['time', 'pattern'])):
+class TimedPattern(object):
+
+    __slots__ = ('time', 'pattern')
+
+    def __init__(self, time, pattern):
+        self.time = time
+        self.pattern = pattern
 
     def match(self, editSummary):
         return self.pattern.match(editSummary.message)

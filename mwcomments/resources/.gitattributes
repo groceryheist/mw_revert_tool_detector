@@ -2,3 +2,4 @@ wikimedia_sites.json filter=lfs diff=lfs merge=lfs -text
 wiki_patterns.json filter=lfs diff=lfs merge=lfs -text
 wiki_patterns.pickle filter=lfs diff=lfs merge=lfs -text
 wikimedia_sites.pickle filter=lfs diff=lfs merge=lfs -text
+deleted_config_revisions.pickle filter=lfs diff=lfs merge=lfs -text

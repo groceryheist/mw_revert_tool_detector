@@ -106,6 +106,29 @@ class WikiToolMap(object):
                          siteInfos=None):
         #    we could make this steaming potentially
 
+        deleted_config_revisions_path = 'resources/deleted_config_revisions.pickle'
+
+        deleted_config_revision_str = resource_string(
+            __name__, deleted_config_revisions_path)
+
+        deleted_revision_records = pickle.loads(deleted_config_revision_str)
+        deleted_config_revisions = {}
+
+        for record in deleted_revision_records:
+            wiki_db = record['wiki_db']
+            page = record['page_title']
+
+            value = {"content":record['content'],
+                     "timestamp":record['timestamp']}
+
+            pages = deleted_config_revisions.get(wiki_db,{})
+            values = pages.get(page,[])
+            values.append(value)
+            pages[page]=values
+            deleted_config_revisions[wiki_db] = pages
+
+        WikiToolMap.deleted_config_revisions = deleted_config_revisions
+
         # ok so we have a problem:
         # github is organized by language, but the API is wiki-specific
         from_api = WikiToolMap._load_from_api(siteInfos)
@@ -161,6 +184,18 @@ class WikiToolMap(object):
 
     @staticmethod
     def _scrape_api(siteInfo, page_prefix):
+        
+        def convert_to_timedPattern(wiki_text, timestamp):
+            timestamp = datetime.datetime.strptime(
+                timestamp, "%Y-%m-%dT%H:%M:%SZ")
+            timestamp = timestamp.replace(tzinfo=datetime.timezone.utc)
+            msg = [line for line in wiki_text.split(
+                '\n') if len(line) > 0][0]
+
+            timedPattern = TimedPattern(
+                time=timestamp, pattern=msg.strip())
+            return timedPattern
+
         ApiTuple = namedtuple(
             "ApiTuple", ['wiki_db', 'page_title', 'timedPattern'])
 
@@ -189,6 +224,7 @@ class WikiToolMap(object):
         allpages = res['query']['allpages']
 
         for page in allpages:
+            
             print("found api settings for {0}".format(wiki_db))
             # then we get the text of that page
             res2 = api.get(action="query",
@@ -201,18 +237,20 @@ class WikiToolMap(object):
             for revision in res_page['revisions']:
                 wiki_text = revision['*']
                 timestamp = revision['timestamp']
-                timestamp = datetime.datetime.strptime(
-                    timestamp, "%Y-%m-%dT%H:%M:%SZ")
-                timestamp = timestamp.replace(tzinfo=datetime.timezone.utc)
-                msg = [line for line in wiki_text.split(
-                    '\n') if len(line) > 0][0]
-
-                timedPattern = TimedPattern(
-                    time=timestamp, pattern=msg.strip())
+                timedPattern = convert_to_timedPattern(wiki_text, timestamp)
 
                 yield ApiTuple(wiki_db=wiki_db,
                                page_title=page['title'],
                                timedPattern=timedPattern)
+
+        deleted_pages = WikiToolMap.deleted_config_revisions.get(wiki_db, {})
+        for page, revisions in deleted_pages.items():
+            if page.lower().startswith(page_prefix):
+                for rev in revisions:
+                    timedPattern = convert_to_timedPattern(rev['content'], rev['timestamp'])
+                    yield ApiTuple(wiki_db=wiki_db,
+                                   page_title=page,
+                                   timedPattern=timedPattern)
 
     @staticmethod
     def _merge_api_git(from_api, from_git, siteInfos):

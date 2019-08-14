@@ -121,7 +121,7 @@ class PatternIndex(object):
 
     def match(self, editSummary):
         if not self.ready:
-            self.convert_to_regex()
+            raise Exception("not ready to match")
 
         if len(self.index) == 0:
             return []

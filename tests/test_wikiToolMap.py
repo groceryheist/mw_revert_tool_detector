@@ -56,6 +56,20 @@ class TestFromAllSources(unittest.TestCase):
         wtm = WikiToolMap.load_WikiToolMap(_siteInfos=test_siteInfos)
         print(wtm)
 
+
+    def test_huwiki(self):
+        test_siteInfos = {'huwiki':SiteInfo("https://hu.wikipedia.org"),'enwiki':SiteInfo("https://en.wikipedia.org")}
+        wtm = WikiToolMap.from_all_sources(siteInfos=test_siteInfos)
+        wtm = wtm.convert_to_regex(test_siteInfos)
+
+        test_str = "Visszavontam [[Special:Contributions/$2|$2]] ([[User talk:$2|vita]]) szerkesztését (oldid: 12354)"
+        
+        test_date = "2018-02-10T01:02:03+00:00"
+        test_wiki = 'huwiki'
+        match = wtm.match(test_str, test_wiki, test_date)
+        self.assertEqual(match, ['undo'])
+
+
 class TestLoadAndMatch(unittest.TestCase):
 
     def setUp(self):
@@ -75,3 +89,11 @@ class TestLoadAndMatch(unittest.TestCase):
         test_wiki = 'idwiki'
         match = self.wtm.match(test_str, test_wiki, test_date)
         self.assertSetEqual(set(match),set())
+
+    def test_huwiki(self):
+        test_str = "Visszaállítottam a lap korábbi változatát [[Special:Contributions/$2|$2]] ([[User talk:$2|vita]]) szerkesztéséről [[:User:$1|$1]] szerkesztésére"
+        
+        test_date = "2018-02-10T01:02:03+00:00"
+        test_wiki = 'huwiki'
+        match = self.wtm.match(test_str, test_wiki, test_date)
+

@@ -80,10 +80,9 @@ class WikiToolMap(object):
     @staticmethod
     def load_WikiToolMap(properties=[('undo-summary', 'undo'),
                                      ('revertpage', 'rollback')],
-                         _siteInfos=None,
-                         force = False
+                         _siteInfos=None
                          ):
-        if _siteInfos is None and force is False:
+        if _siteInfos is None:
             if resource_exists(__name__, WikiToolMap.resource_path):
                 wiki_patterns_str = resource_string(
                     __name__, WikiToolMap.resource_path)
@@ -101,7 +100,7 @@ class WikiToolMap(object):
             siteInfos = _siteInfos
 
         print("loading toolmaps from all sources")
-        wtm = WikiToolMap.from_all_sources(properties, siteInfos, force=force)
+        wtm = WikiToolMap.from_all_sources(properties, siteInfos)
 
         wtm = wtm.convert_to_regex(siteInfos)
 
@@ -115,12 +114,11 @@ class WikiToolMap(object):
     @staticmethod
     def from_all_sources(properties=[('undo-summary', 'undo'),
                                      ('revertpage', 'rollback')],
-                         siteInfos=None, force=False):
+                         siteInfos=None):
         #    we could make this steaming potentially
 
         deleted_config_revisions_path = 'resources/deleted_config_revisions.pickle'
 
-        if force is False:
         deleted_config_revision_str = resource_string(__name__, deleted_config_revisions_path)
 
         deleted_revision_records = pickle.loads(deleted_config_revision_str)

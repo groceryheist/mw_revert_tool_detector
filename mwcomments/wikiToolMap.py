@@ -121,8 +121,7 @@ class WikiToolMap(object):
         deleted_config_revisions_path = 'resources/deleted_config_revisions.pickle'
 
         if force is False:
-        deleted_config_revision_str = resource_string(
-            __name__, deleted_config_revisions_path)
+        deleted_config_revision_str = resource_string(__name__, deleted_config_revisions_path)
 
         deleted_revision_records = pickle.loads(deleted_config_revision_str)
         deleted_config_revisions = {}

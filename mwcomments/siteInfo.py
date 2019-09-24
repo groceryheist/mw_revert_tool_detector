@@ -4,7 +4,7 @@ from itertools import chain
 from .util import get_api
 from .twinkle_patterns import find_twinkle_pattern
 from .huggle_patterns import find_huggle_pattern
-
+import re
 class SiteInfoEncoder(JSONEncoder):
     def default(self, obj):
         if isinstance(obj, SiteInfo):

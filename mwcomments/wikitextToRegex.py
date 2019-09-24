@@ -4,6 +4,9 @@ import datetime
 
 def convert(summary, siteInfo, dt=None):
 
+    if summary is None:
+        return None
+
     if dt is None:
         dt = datetime.datetime.now()
         dt = dt.replace(tzinfo=datetime.timezone.utc)

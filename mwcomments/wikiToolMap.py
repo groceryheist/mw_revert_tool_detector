@@ -58,8 +58,12 @@ class WikiToolMap(object):
             r".*(:?(\(HG\)|\(\[\[.*\|HG\]\]\)|\(\[\[.*\|Huggle\]\]\))).*")
         stiki_pattern = re.compile(r".*(:?using\ \[\[WP:STiki\|STiki\]\]).*")
 
-        tool_patterns = zip(["huggle", "twinkle", "stiki"], [
-                            huggle_pattern, self.twinkle_patterns[wiki_db], stiki_pattern])
+        fastbuttons_pattern = re.compile(".*(:?\(\[\[.*/FastButtons\|FBs\]\]\)).*")
+
+        liverc_pattern = re.compile(".*(:?\[\[.*\|LiveRC\]\]).*")
+        
+        tool_patterns = zip(["huggle", "twinkle", "stiki",'fastbuttons'], [
+                            self.huggle_patterns[wiki_db], self.twinkle_patterns[wiki_db], stiki_pattern,fastbuttons_pattern,liverc_pattern])
         tools = []
         for name, pattern in tool_patterns:
             if pattern.match(editSummary.message):
@@ -98,6 +102,7 @@ class WikiToolMap(object):
 
         from .wikitextToRegex import convert
         wtm.twinkle_patterns = {si.wiki_db: convert(si.twinkle_pattern) for si in siteInfos}
+        wtm.huggle_patterns = {si.wiki_db: convert(si.huggle_pattern) for si in siteInfos}
 
         return wtm
 
@@ -432,15 +437,15 @@ class WikiToolMap(object):
     @staticmethod
     def _load_from_resource(s):
         in_obj = pickle.loads(s)
-        in_d = in_obj['wtm']
-        in_twinkle_patterns = in_obj['twinkle_patterns']
-        loaded = {k:ToolMap.from_dict(v) for k, v in in_d.items()}
+
+        loaded = {k:ToolMap.from_dict(v) for k, v in in_obj['wtm'].items()}
         loaded = WikiToolMap(loaded)
         
         if isinstance(list(loaded.wikiToolMap.keys())[0], SiteListItem):
             loaded.wikiToolMap = {k.dbname:v for k,v in loaded.wikiToolMap.items()}
 
-        loaded.twinkle_patterns = in_twinkle_patterns
+        loaded.twinkle_patterns = in_obj['twinkle_patterns']
+        loaded.huggle_patterns = in_obj['huggle_pattern']
         return loaded
 #    return pickle.load(open('resources/wiki_patterns.pickle','rb'))
 

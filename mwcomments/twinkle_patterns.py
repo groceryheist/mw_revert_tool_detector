@@ -1,18 +1,12 @@
-import mwapi
 import re
 from itertools import chain
 from mwcomments.util import get_api
 
 # wikis without twinkle: ru, eu, esbooks, esquote, fi, he, sq, it, bs, cs, et, pl, hu, 
-
-new_twinkle_page = "MediaWiki:Gadget-Twinkle.js"
-
-url = 'https://fr.wikipedia.org'
-
 ## 1. look for the MediaWiki:Gadget_Twinkle.js page
 ## 2. if we find it then find then look for TwinkleConfig.summaryAd or summaryAd variables. See what they get set to and use that. 
 
-def find_summary_ad(url):
+def find_twinkle_pattern(url):
     
     summaryAdPattern = re.compile(r'^.*summaryAd\ ?[:=]\ ?[\"\']\ ?(.*)\ ?[\"\'][,;].*$',flags=re.M)
 
@@ -24,7 +18,8 @@ def find_summary_ad(url):
                          srsearch='summaryAd',
                          srnamespace=[2,8],
                          srwhat='text',
-                         srlimit='max')
+                         srlimit='max',
+                         redirects=True)
 
         prod_pages = [r for r in result['query']['search'] if r['title'].lower().endswith("twinkleprod.js") or r['title'].lower().endswith("common.js") or r['title'].lower().endswith("twinkle.js")]
 
@@ -34,7 +29,8 @@ def find_summary_ad(url):
                                      prop='revisions',
                                      rvprop=['ids','timestamp','comment','user','content'],
                                      pageids=[page['pageid']],
-                                     rvlimit='max')
+                                     rvlimit='max',
+                                     redirects=True)
             if isinstance(page_revisions['query']['pages'],dict):
                 contents.extend([r["*"]
                                  for r in chain(*

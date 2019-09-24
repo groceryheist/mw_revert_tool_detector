@@ -24,8 +24,13 @@ class SiteInfo(object):
         self.url = url
         api = get_api(self.url)
         self.have_info = self._lookup_siteinfo(api)
-        self.twinkle_pattern = find_twinkle_pattern(self.url)
-        self.huggle_pattern = find_huggle_pattern(self.url)
+        try: 
+            self.twinkle_pattern = find_twinkle_pattern(self.url)
+            self.huggle_pattern = find_huggle_pattern(self.url)
+        except Exception as e:
+            self.twinkle_pattern = re.compile('$^', flags=re.M)
+            self.huggle_pattern = re.compile('$^', flags=re.M)
+
         if not self.have_info:
             return None
 

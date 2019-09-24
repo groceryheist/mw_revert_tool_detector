@@ -56,12 +56,10 @@ class WikiToolMap(object):
 
         huggle_pattern = re.compile(
             r".*(:?(\(HG\)|\(\[\[.*\|HG\]\]\)|\(\[\[.*\|Huggle\]\]\))).*")
-        twinkle_pattern = re.compile(
-            r".*(:?\(TW\)|\(\[\[.*\|TW\]\]\)\)|\(\[\[.*\|Twinkle\]\]\)\)).*")
         stiki_pattern = re.compile(r".*(:?using\ \[\[WP:STiki\|STiki\]\]).*")
 
         tool_patterns = zip(["huggle", "twinkle", "stiki"], [
-                            huggle_pattern, twinkle_pattern, stiki_pattern])
+                            huggle_pattern, self.twinkle_patterns[wiki_db], stiki_pattern])
         tools = []
         for name, pattern in tool_patterns:
             if pattern.match(editSummary.message):
@@ -74,7 +72,8 @@ class WikiToolMap(object):
     @staticmethod
     def load_WikiToolMap(properties=[('undo-summary', 'undo'),
                                      ('revertpage', 'rollback')],
-                         _siteInfos=None):
+                         _siteInfos=None,
+                         twinkle_patterns=None):
         if _siteInfos is None:
             if resource_exists(__name__, WikiToolMap.resource_path):
                 wiki_patterns_str = resource_string(
@@ -96,6 +95,9 @@ class WikiToolMap(object):
         wtm = WikiToolMap.from_all_sources(properties, siteInfos)
 
         wtm = wtm.convert_to_regex(siteInfos)
+
+        from .wikitextToRegex import convert
+        wtm.twinkle_patterns = {si.wiki_db: convert(si.twinkle_pattern) for si in siteInfos}
 
         return wtm
 
@@ -416,7 +418,9 @@ class WikiToolMap(object):
 
     def save(self):
         of = open(WikiToolMap.resource_path, 'wb')
-        out_obj = {k:v.as_dict() for k, v in self.wikiToolMap.items()}
+        out_d = {k:v.as_dict() for k, v in self.wikiToolMap.items()}
+        out_twinkle_patterns = self.wikiToolMap.twinkle_patterns
+        out_obj = {'wtm':out_d,'twinkle_patterns':out_twinkle_patterns}
         pickle.dump(out_obj, of)
 
     def __getitem__(self, wiki_db):
@@ -427,14 +431,16 @@ class WikiToolMap(object):
 
     @staticmethod
     def _load_from_resource(s):
-        in_d = pickle.loads(s)
-
+        in_obj = pickle.loads(s)
+        in_d = in_obj['wtm']
+        in_twinkle_patterns = in_obj['twinkle_patterns']
         loaded = {k:ToolMap.from_dict(v) for k, v in in_d.items()}
         loaded = WikiToolMap(loaded)
         
         if isinstance(list(loaded.wikiToolMap.keys())[0], SiteListItem):
             loaded.wikiToolMap = {k.dbname:v for k,v in loaded.wikiToolMap.items()}
 
+        loaded.twinkle_patterns = in_twinkle_patterns
         return loaded
 #    return pickle.load(open('resources/wiki_patterns.pickle','rb'))
 

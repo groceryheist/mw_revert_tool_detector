@@ -2,6 +2,7 @@ import os
 from json import JSONEncoder
 from itertools import chain
 from .util import get_api
+from .twinkle_patterns import find_twinkle_pattern
 
 class SiteInfoEncoder(JSONEncoder):
     def default(self, obj):
@@ -16,12 +17,13 @@ class SiteInfo(object):
                  'special_aliases', 'fallback_langs',
                  'special_prefixes', 'canonical_namespaces_byid',
                  'canonical_namespaces_byname', 'lang_variants',
-                 'toolMap', 'have_info']
+                 'toolMap', 'have_info', 'twinkle_pattern']
 
     def __init__(self, url):
         self.url = url
         api = get_api(self.url)
         self.have_info = self._lookup_siteinfo(api)
+        self.twinkle_pattern = find_twinkle_pattern(self.url)
         if not self.have_info:
             return None
 

@@ -62,8 +62,12 @@ class WikiToolMap(object):
 
         liverc_pattern = re.compile(".*(:?\[\[.*\|LiveRC\]\]).*")
         
-        tool_patterns = zip(["huggle", "twinkle", "stiki",'fastbuttons'], [
-                            self.huggle_patterns[wiki_db], self.twinkle_patterns[wiki_db], stiki_pattern,fastbuttons_pattern,liverc_pattern])
+        tool_patterns = zip(["huggle", "twinkle", "stiki",'fastbuttons'],
+                            [self.huggle_patterns[wiki_db],
+                             self.twinkle_patterns[wiki_db],
+                             stiki_pattern,
+                             fastbuttons_pattern,
+                             liverc_pattern])
         tools = []
         for name, pattern in tool_patterns:
             if pattern.match(editSummary.message):
@@ -77,8 +81,9 @@ class WikiToolMap(object):
     def load_WikiToolMap(properties=[('undo-summary', 'undo'),
                                      ('revertpage', 'rollback')],
                          _siteInfos=None,
-                         twinkle_patterns=None):
-        if _siteInfos is None:
+                         force = False
+                         ):
+        if _siteInfos is None and force is False:
             if resource_exists(__name__, WikiToolMap.resource_path):
                 wiki_patterns_str = resource_string(
                     __name__, WikiToolMap.resource_path)
@@ -96,13 +101,13 @@ class WikiToolMap(object):
             siteInfos = _siteInfos
 
         print("loading toolmaps from all sources")
-        wtm = WikiToolMap.from_all_sources(properties, siteInfos)
+        wtm = WikiToolMap.from_all_sources(properties, siteInfos, force=force)
 
         wtm = wtm.convert_to_regex(siteInfos)
 
         from .wikitextToRegex import convert
-        wtm.twinkle_patterns = {si.wiki_db: convert(si.twinkle_pattern) for si in siteInfos}
-        wtm.huggle_patterns = {si.wiki_db: convert(si.huggle_pattern) for si in siteInfos}
+        wtm.twinkle_patterns = {wiki_db: convert(si.twinkle_pattern) for wiki_db, si in siteInfos.items()}
+        wtm.huggle_patterns = {wiki_db: convert(si.huggle_pattern) for wiki_db, is in siteInfos.items()}
 
         return wtm
 
@@ -110,11 +115,12 @@ class WikiToolMap(object):
     @staticmethod
     def from_all_sources(properties=[('undo-summary', 'undo'),
                                      ('revertpage', 'rollback')],
-                         siteInfos=None):
+                         siteInfos=None, force=False):
         #    we could make this steaming potentially
 
         deleted_config_revisions_path = 'resources/deleted_config_revisions.pickle'
 
+        if force is False:
         deleted_config_revision_str = resource_string(
             __name__, deleted_config_revisions_path)
 

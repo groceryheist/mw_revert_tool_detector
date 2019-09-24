@@ -453,8 +453,8 @@ class WikiToolMap(object):
         if isinstance(list(loaded.wikiToolMap.keys())[0], SiteListItem):
             loaded.wikiToolMap = {k.dbname:v for k,v in loaded.wikiToolMap.items()}
 
-        loaded.twinkle_patterns = in_obj['twinkle_patterns']
-        loaded.huggle_patterns = in_obj['huggle_pattern']
+        loaded.twinkle_patterns = in_obj['wtm']['twinkle_patterns']
+        loaded.huggle_patterns = in_obj['wtm']['huggle_pattern']
         return loaded
 #    return pickle.load(open('resources/wiki_patterns.pickle','rb'))
 

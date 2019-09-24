@@ -4,7 +4,7 @@ from mwcomments.util import get_api
 
 
 def find_huggle_pattern(url):
-    summary_pattern = re.compile(r"^\s?summary:\s?[\'\"](.*)[\'\"]$", flags = re.M)
+    summary_pattern = re.compile(r"^\s?summary:\s?[\'\"\s]?(.*)[\'\"\s]?$", flags = re.M)
     old_version_page = "Wikipedia:Huggle/Config"
     new_version_page = "Wikipedia:Huggle/Config.yaml"
 
@@ -15,7 +15,7 @@ def find_huggle_pattern(url):
                          prop='revisions',
                          rvprop=['ids','timestamp','comment','user','content'],
                          titles=[title],
-                         rvlimit=['max'],
+                         rvlimit='max',
                          redirects=True)
 
         if 'pages' in result['query'] and isinstance(result['query']['pages'],dict):

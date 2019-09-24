@@ -430,8 +430,11 @@ class WikiToolMap(object):
     def save(self):
         of = open(WikiToolMap.resource_path, 'wb')
         out_d = {k:v.as_dict() for k, v in self.wikiToolMap.items()}
-        out_twinkle_patterns = self.wikiToolMap.twinkle_patterns
-        out_obj = {'wtm':out_d,'twinkle_patterns':out_twinkle_patterns}
+
+        out_obj = {'wtm':out_d,
+                   'twinkle_patterns': self.wikiToolMap.twinkle_patterns,
+                   'huggle_patterns': self.wikiToolMap.huggle_patterns}
+
         pickle.dump(out_obj, of)
 
     def __getitem__(self, wiki_db):

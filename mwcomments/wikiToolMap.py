@@ -107,7 +107,7 @@ class WikiToolMap(object):
 
         from .wikitextToRegex import convert
         wtm.twinkle_patterns = {wiki_db: convert(si.twinkle_pattern) for wiki_db, si in siteInfos.items()}
-        wtm.huggle_patterns = {wiki_db: convert(si.huggle_pattern) for wiki_db, is in siteInfos.items()}
+        wtm.huggle_patterns = {wiki_db: convert(si.huggle_pattern) for wiki_db, si in siteInfos.items()}
 
         return wtm
 

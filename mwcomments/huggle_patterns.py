@@ -18,10 +18,10 @@ def find_huggle_pattern(url):
                          rvlimit=['max'],
                          redirects=True)
 
-        if isinstance(result['query']['pages'],dict):
-            contents.extend([r["*"]
+        if 'pages' in result['query'] and isinstance(result['query']['pages'],dict):
+            contents.extend([r.get("*",'')
                              for r in chain(*
-                                            [p['revisions'] for pageid, p in result['query']['pages'].items()])])
+                                            [p.get('revisions', {})for pageid, p in result['query']['pages'].items()])])
 
     captures = list(chain(*[summary_pattern.findall(c) for c in contents]))
     counted = [(x,captures.count(x)) for x in captures]

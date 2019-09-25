@@ -21,13 +21,14 @@ import pickle
 # more obvious
 
 class WikiToolMap(object):
-    __slots__ = ('wikiToolMap')
+    __slots__ = ('wikiToolMap', "twinkle_patterns", "huggle_patterns")
 
     EMPTY_TREE_SHA = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
     resource_path = 'resources/wiki_patterns.pickle'
 
     def __init__(self, wikiToolMap):
         self.wikiToolMap = wikiToolMap
+
 
     def match(self, comment, wiki_db, date):
         """ 
@@ -105,8 +106,8 @@ class WikiToolMap(object):
         wtm = wtm.convert_to_regex(siteInfos)
 
         from .wikitextToRegex import convert
-        wtm.twinkle_patterns = {wiki_db: convert(si.twinkle_pattern) for wiki_db, si in siteInfos.items()}
-        wtm.huggle_patterns = {wiki_db: convert(si.huggle_pattern) for wiki_db, si in siteInfos.items()}
+        wtm.twinkle_patterns = {wiki_db: convert(si.twinkle_pattern, si) for wiki_db, si in siteInfos.items()}
+        wtm.huggle_patterns = {wiki_db: convert(si.huggle_pattern, si) for wiki_db, si in siteInfos.items()}
 
         return wtm
 
@@ -429,8 +430,8 @@ class WikiToolMap(object):
         out_d = {k:v.as_dict() for k, v in self.wikiToolMap.items()}
 
         out_obj = {'wtm':out_d,
-                   'twinkle_patterns': self.wikiToolMap.twinkle_patterns,
-                   'huggle_patterns': self.wikiToolMap.huggle_patterns}
+                   'twinkle_patterns': self.twinkle_patterns,
+                   'huggle_patterns': self.huggle_patterns}
 
         pickle.dump(out_obj, of)
 

@@ -4,8 +4,8 @@ import datetime
 
 def convert(summary, siteInfo, dt=None):
 
-    if summary is None:
-        return None
+    if summary is None or len(summary)==0:
+        return re.compile("$^",flags=re.M)
 
     if dt is None:
         dt = datetime.datetime.now()

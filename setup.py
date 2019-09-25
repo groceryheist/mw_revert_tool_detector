@@ -1,6 +1,6 @@
 from setuptools import setup
 setup(name="mwcomments",
-      version="0.3.0",
+      version="0.3.1",
       description="Utilities for interpreting comments in edits to mediawiki wikis",
       license="GPL3",
       packages=['mwcomments'],

@@ -2,7 +2,9 @@ import os
 from json import JSONEncoder
 from itertools import chain
 from .util import get_api
-
+from .twinkle_patterns import find_twinkle_pattern
+from .huggle_patterns import find_huggle_pattern
+import re
 class SiteInfoEncoder(JSONEncoder):
     def default(self, obj):
         if isinstance(obj, SiteInfo):
@@ -16,12 +18,19 @@ class SiteInfo(object):
                  'special_aliases', 'fallback_langs',
                  'special_prefixes', 'canonical_namespaces_byid',
                  'canonical_namespaces_byname', 'lang_variants',
-                 'toolMap', 'have_info']
+                 'toolMap', 'have_info', 'twinkle_pattern','huggle_pattern']
 
     def __init__(self, url):
         self.url = url
         api = get_api(self.url)
         self.have_info = self._lookup_siteinfo(api)
+        try: 
+            self.twinkle_pattern = find_twinkle_pattern(self.url)
+            self.huggle_pattern = find_huggle_pattern(self.url)
+        except Exception as e:
+            self.twinkle_pattern = re.compile('$^', flags=re.M)
+            self.huggle_pattern = re.compile('$^', flags=re.M)
+
         if not self.have_info:
             return None
 

@@ -21,13 +21,14 @@ import pickle
 # more obvious
 
 class WikiToolMap(object):
-    __slots__ = ('wikiToolMap')
+    __slots__ = ('wikiToolMap', "twinkle_patterns", "huggle_patterns")
 
     EMPTY_TREE_SHA = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
     resource_path = 'resources/wiki_patterns.pickle'
 
     def __init__(self, wikiToolMap):
         self.wikiToolMap = wikiToolMap
+
 
     def match(self, comment, wiki_db, date):
         """ 
@@ -56,12 +57,18 @@ class WikiToolMap(object):
 
         huggle_pattern = re.compile(
             r".*(:?(\(HG\)|\(\[\[.*\|HG\]\]\)|\(\[\[.*\|Huggle\]\]\))).*")
-        twinkle_pattern = re.compile(
-            r".*(:?\(TW\)|\(\[\[.*\|TW\]\]\)\)|\(\[\[.*\|Twinkle\]\]\)\)).*")
         stiki_pattern = re.compile(r".*(:?using\ \[\[WP:STiki\|STiki\]\]).*")
 
-        tool_patterns = zip(["huggle", "twinkle", "stiki"], [
-                            huggle_pattern, twinkle_pattern, stiki_pattern])
+        fastbuttons_pattern = re.compile(".*(:?\(\[\[.*/FastButtons\|FBs\]\]\)).*")
+
+        liverc_pattern = re.compile(".*(:?\[\[.*\|LiveRC\]\]).*")
+        
+        tool_patterns = zip(["huggle", "twinkle", "stiki",'fastbuttons'],
+                            [self.huggle_patterns[wiki_db],
+                             self.twinkle_patterns[wiki_db],
+                             stiki_pattern,
+                             fastbuttons_pattern,
+                             liverc_pattern])
         tools = []
         for name, pattern in tool_patterns:
             if pattern.match(editSummary.message):
@@ -74,7 +81,8 @@ class WikiToolMap(object):
     @staticmethod
     def load_WikiToolMap(properties=[('undo-summary', 'undo'),
                                      ('revertpage', 'rollback')],
-                         _siteInfos=None):
+                         _siteInfos=None
+                         ):
         if _siteInfos is None:
             if resource_exists(__name__, WikiToolMap.resource_path):
                 wiki_patterns_str = resource_string(
@@ -97,6 +105,10 @@ class WikiToolMap(object):
 
         wtm = wtm.convert_to_regex(siteInfos)
 
+        from .wikitextToRegex import convert
+        wtm.twinkle_patterns = {wiki_db: convert(si.twinkle_pattern, si) for wiki_db, si in siteInfos.items()}
+        wtm.huggle_patterns = {wiki_db: convert(si.huggle_pattern, si) for wiki_db, si in siteInfos.items()}
+
         return wtm
 
     # think about promoting SiteInfos to an object property
@@ -108,8 +120,7 @@ class WikiToolMap(object):
 
         deleted_config_revisions_path = 'resources/deleted_config_revisions.pickle'
 
-        deleted_config_revision_str = resource_string(
-            __name__, deleted_config_revisions_path)
+        deleted_config_revision_str = resource_string(__name__, deleted_config_revisions_path)
 
         deleted_revision_records = pickle.loads(deleted_config_revision_str)
         deleted_config_revisions = {}
@@ -416,7 +427,12 @@ class WikiToolMap(object):
 
     def save(self):
         of = open(WikiToolMap.resource_path, 'wb')
-        out_obj = {k:v.as_dict() for k, v in self.wikiToolMap.items()}
+        out_d = {k:v.as_dict() for k, v in self.wikiToolMap.items()}
+
+        out_obj = {'wtm':out_d,
+                   'twinkle_patterns': self.twinkle_patterns,
+                   'huggle_patterns': self.huggle_patterns}
+
         pickle.dump(out_obj, of)
 
     def __getitem__(self, wiki_db):
@@ -427,14 +443,16 @@ class WikiToolMap(object):
 
     @staticmethod
     def _load_from_resource(s):
-        in_d = pickle.loads(s)
+        in_obj = pickle.loads(s)
 
-        loaded = {k:ToolMap.from_dict(v) for k, v in in_d.items()}
+        loaded = {k:ToolMap.from_dict(v) for k, v in in_obj['wtm'].items()}
         loaded = WikiToolMap(loaded)
         
         if isinstance(list(loaded.wikiToolMap.keys())[0], SiteListItem):
             loaded.wikiToolMap = {k.dbname:v for k,v in loaded.wikiToolMap.items()}
 
+        loaded.twinkle_patterns = in_obj['wtm']['twinkle_patterns']
+        loaded.huggle_patterns = in_obj['wtm']['huggle_pattern']
         return loaded
 #    return pickle.load(open('resources/wiki_patterns.pickle','rb'))
 

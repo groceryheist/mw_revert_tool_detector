@@ -33,8 +33,10 @@ class ToolMap(object):
     @staticmethod
     def from_dict(toolMap):
 
-        v = next(iter(toolMap.values()))
-
+        try:
+            v = next(iter(toolMap.values()))
+        except StopIteration as e:
+            return ToolMap()
 
         if isinstance(v, PatternIndex):
             obj = ToolMap()

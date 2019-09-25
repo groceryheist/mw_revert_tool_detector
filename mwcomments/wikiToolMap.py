@@ -26,8 +26,10 @@ class WikiToolMap(object):
     EMPTY_TREE_SHA = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
     resource_path = 'resources/wiki_patterns.pickle'
 
-    def __init__(self, wikiToolMap):
+    def __init__(self, wikiToolMap, twinkle_patterns = {}, huggle_patterns = {}):
         self.wikiToolMap = wikiToolMap
+        self.twinkle_patterns = twinkle_patterns
+        self.huggle_patterns = huggle_patterns
 
 
     def match(self, comment, wiki_db, date):
@@ -55,8 +57,7 @@ class WikiToolMap(object):
 
         toolMap = self.wikiToolMap[editSummary.wiki]
 
-        huggle_pattern = re.compile(
-            r".*(:?(\(HG\)|\(\[\[.*\|HG\]\]\)|\(\[\[.*\|Huggle\]\]\))).*")
+
         stiki_pattern = re.compile(r".*(:?using\ \[\[WP:STiki\|STiki\]\]).*")
 
         fastbuttons_pattern = re.compile(".*(:?\(\[\[.*/FastButtons\|FBs\]\]\)).*")
@@ -64,8 +65,8 @@ class WikiToolMap(object):
         liverc_pattern = re.compile(".*(:?\[\[.*\|LiveRC\]\]).*")
         
         tool_patterns = zip(["huggle", "twinkle", "stiki",'fastbuttons'],
-                            [self.huggle_patterns[wiki_db],
-                             self.twinkle_patterns[wiki_db],
+                            [self.huggle_patterns.get(editSummary.wiki,re.compile("$^")),
+                             self.twinkle_patterns.get(editSummary.wiki, re.compile("$^")),
                              stiki_pattern,
                              fastbuttons_pattern,
                              liverc_pattern])
@@ -451,8 +452,8 @@ class WikiToolMap(object):
         if isinstance(list(loaded.wikiToolMap.keys())[0], SiteListItem):
             loaded.wikiToolMap = {k.dbname:v for k,v in loaded.wikiToolMap.items()}
 
-        loaded.twinkle_patterns = in_obj['wtm']['twinkle_patterns']
-        loaded.huggle_patterns = in_obj['wtm']['huggle_pattern']
+        loaded.twinkle_patterns = in_obj['twinkle_patterns']
+        loaded.huggle_patterns = in_obj['huggle_patterns']
         return loaded
 #    return pickle.load(open('resources/wiki_patterns.pickle','rb'))
 

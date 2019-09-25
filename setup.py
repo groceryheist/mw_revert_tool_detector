@@ -1,10 +1,10 @@
 from setuptools import setup
 setup(name="mwcomments",
-      version="0.2.0",
+      version="0.3.0",
       description="Utilities for interpreting comments in edits to mediawiki wikis",
       license="GPL3",
       packages=['mwcomments'],
-      package_data={'mwcomments':['resources/wiki_patterns.pickle',"resources/wikimedia_sites.pickle"."resources/deleted_config_revisions_treated.json"]},
+      package_data={'mwcomments':['resources/wiki_patterns.pickle',"resources/wikimedia_sites.pickle","resources/deleted_config_revisions_treated.json"]},
       author="Nathan TeBlunthuis",
       author_email="nathante@uw.edu",
       keywords=['mediawiki'],

@@ -64,7 +64,7 @@ class WikiToolMap(object):
 
         liverc_pattern = re.compile(".*(:?\[\[.*\|LiveRC\]\]).*")
         
-        tool_patterns = zip(["huggle", "twinkle", "stiki",'fastbuttons'],
+        tool_patterns = zip(["huggle", "twinkle", "stiki",'fastbuttons','LiveRC'],
                             [self.huggle_patterns.get(editSummary.wiki,re.compile("$^")),
                              self.twinkle_patterns.get(editSummary.wiki, re.compile("$^")),
                              stiki_pattern,

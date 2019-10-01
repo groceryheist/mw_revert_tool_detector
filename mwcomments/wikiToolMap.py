@@ -60,7 +60,7 @@ class WikiToolMap(object):
 
         stiki_pattern = re.compile(r".*(:?using\ \[\[WP:STiki\|STiki\]\]).*")
 
-        fastbuttons_pattern = re.compile(".*(:?\(\[\[.*/FastButtons\|FBs\]\]\)).*")
+        fastbuttons_pattern = re.compile(".*(:?\(\[\[.*/?FastButtons\|[(FBs)(FastButtons)]\]\]\)).*")
 
         liverc_pattern = re.compile(".*(:?\[\[.*\|LiveRC\]\]).*")
         
